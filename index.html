@@ -538,7 +538,10 @@
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
                 <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls for shift scheduling, group chat rooms, officer approvals, rank adjustments, and PTO balance management.</p>
-                <button class="btn-danger" style="font-size: 11px; padding: 10px;" onclick="resetSystemData()">🔄 RESET SYSTEM DATA & CLEAR CACHE</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px; margin-bottom: 0;" onclick="renderAdminUserList()">🔄 REFRESH PENDING LIST</button>
+                    <button class="btn-danger" style="font-size: 11px; padding: 10px; margin-bottom: 0;" onclick="resetSystemData()">🔄 RESET SYSTEM CACHE</button>
+                </div>
             </div>
 
             <!-- PENDING ACCOUNT APPROVALS ALERT -->
