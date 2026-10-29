@@ -406,7 +406,7 @@
 
         <div class="card" id="login-box">
             <h3 style="font-family: monospace; color: var(--text-secondary); font-size: 13px; margin-bottom: 15px;">OFFICER AUTHENTICATION</h3>
-            <label>Badge Number</label>
+            <label>Badge Number / Unit Number</label>
             <input type="text" id="login-badge" placeholder="e.g., 23-22">
             <label>Password</label>
             <input type="password" id="login-pass" placeholder="Password">
@@ -418,7 +418,7 @@
             <h3 style="font-family: monospace; color: var(--text-secondary); font-size: 13px; margin-bottom: 15px;">REQUEST OFFICER ACCOUNT</h3>
             <label>Full Name</label>
             <input type="text" id="reg-name" placeholder="Officer Full Name">
-            <label>Badge Number</label>
+            <label>Badge Number / Unit Number</label>
             <input type="text" id="reg-badge" placeholder="e.g., 23-22">
             <label>Rank</label>
             <select id="reg-rank">
@@ -724,7 +724,6 @@
         let currentCalendarDate = new Date();
 
         window.onload = function() {
-            // Re-sync users from storage
             users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
 
             renderNotices();
@@ -763,7 +762,7 @@
             const found = users.find(u => u.badge === badge && u.pass === pass);
 
             if (!found) {
-                alert("Invalid badge number or password.");
+                alert("Invalid badge / unit number or password.");
                 return;
             }
 
@@ -797,7 +796,7 @@
             }
 
             if (users.find(u => u.badge === badge)) {
-                alert("An account with this badge number already exists.");
+                alert("An account or unit number with this badge/unit ID already exists. If an officer entered the wrong information, an administrator can delete their account from the Admin panel to free up this number.");
                 return;
             }
 
@@ -852,7 +851,7 @@
         function renderProfileCard() {
             document.getElementById('profile-info-body').innerHTML = `
                 <strong>Name:</strong> ${currentUser.name}<br>
-                <strong>Badge:</strong> #${currentUser.badge}<br>
+                <strong>Badge / Unit:</strong> #${currentUser.badge}<br>
                 <strong>Rank:</strong> ${currentUser.rank}<br>
                 <strong>Phone:</strong> ${currentUser.phone || 'N/A'}<br>
                 <strong>Emergency Contact:</strong> ${currentUser.emergency || 'N/A'}<br>
@@ -1233,7 +1232,6 @@
 
             const pendingUsers = users.filter(u => u.status === 'pending');
 
-            // Render Pending Alert Box
             if (pendingUsers.length > 0 && pendingCard && pendingList) {
                 pendingCard.style.display = 'block';
                 pendingUsers.forEach(u => {
@@ -1244,7 +1242,10 @@
                                 <strong style="color:var(--text-primary);">${u.name} (#${u.badge})</strong><br>
                                 <span style="font-size:10px; color:var(--text-secondary);">${u.rank} • ${u.phone}</span>
                             </div>
-                            <button class="btn-primary" style="padding:6px 12px; margin-bottom:0; font-size:11px; width:auto;" onclick="approveUser(${idx})">APPROVE OFFICER</button>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn-primary" style="padding:6px 10px; margin-bottom:0; font-size:11px; width:auto;" onclick="approveUser(${idx})">APPROVE</button>
+                                <button class="btn-danger" style="padding:6px 10px; margin-bottom:0; font-size:11px; width:auto;" onclick="deleteUserAccount('${u.badge}')">DELETE</button>
+                            </div>
                         </div>
                     `;
                 });
@@ -1313,11 +1314,29 @@
 
                     <div style="display:flex; gap:6px;">
                         ${u.status === 'pending' ? `<button class="btn-primary" style="padding:6px; font-size:11px;" onclick="approveUser(${idx})">Approve Officer</button>` : ''}
-                        ${isMainAdmin ? '<span style="font-size:10px; color:var(--admin-gold); align-self:center; font-family:monospace;">🔒 Primary Admin (Protected)</span>' : `<button class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower(${idx})">${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}</button>`}
+                        ${isMainAdmin ? '<span style="font-size:10px; color:var(--admin-gold); align-self:center; font-family:monospace;">🔒 Primary Admin</span>' : `<button class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower(${idx})">${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}</button>`}
+                        ${!isMainAdmin ? `<button class="btn-danger" style="padding:6px 10px; font-size:11px; width:auto;" onclick="deleteUserAccount('${u.badge}')">🗑️ Delete Account</button>` : ''}
                     </div>
                 `;
                 container.appendChild(div);
             });
+        }
+
+        function deleteUserAccount(badgeId) {
+            if (badgeId === "23-22") {
+                alert("Cannot delete the primary admin account.");
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to completely delete account #${badgeId}? This will free up the unit/badge number so a new registration can be submitted with it.`)) {
+                return;
+            }
+
+            users = users.filter(u => u.badge !== badgeId);
+            saveUsers();
+            renderAdminUserList();
+            populateAdminUserDropdown();
+            alert(`Account #${badgeId} has been deleted and the unit number is now free to reuse.`);
         }
 
         function updateUserDetails(badgeId) {
@@ -1448,7 +1467,6 @@
             document.getElementById('tab-' + tabId).classList.add('active');
             el.classList.add('active');
 
-            // Re-render admin lists when switching to admin tab
             if (tabId === 'admin') {
                 renderAdminUserList();
             }
