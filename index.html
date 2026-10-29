@@ -224,12 +224,24 @@
         }
 
         /* Calendar Grid Styling */
-        .calendar-header {
+        .calendar-nav-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
+        }
+
+        .cal-nav-btn {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
             font-family: monospace;
+            cursor: pointer;
+            width: auto;
+            margin-bottom: 0;
         }
 
         .calendar-grid {
@@ -456,9 +468,10 @@
         <!-- 📅 SCHEDULE & CALENDAR TAB -->
         <section id="tab-schedule" class="tab-content">
             <div class="card">
-                <div class="calendar-header">
-                    <span class="card-title">MONTHLY SHIFT CALENDAR</span>
-                    <span style="font-size: 12px; color: var(--cyber-blue);" id="calendar-month-title">MONTH</span>
+                <div class="calendar-nav-bar">
+                    <button class="cal-nav-btn" onclick="changeMonth(-1)">◀ PREV</button>
+                    <span class="card-title" id="calendar-month-title">MONTH</span>
+                    <button class="cal-nav-btn" onclick="changeMonth(1)">NEXT ▶</button>
                 </div>
                 
                 <div class="calendar-grid">
@@ -548,8 +561,10 @@
                 <p style="font-size: 11px; color: var(--admin-gold); margin-bottom: 8px;">Selected days highlight in gold.</p>
 
                 <div style="background:var(--bg-color); padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.3); margin-bottom: 12px;">
-                    <div class="calendar-header">
+                    <div class="calendar-nav-bar">
+                        <button class="cal-nav-btn" onclick="changeMonth(-1)">◀ PREV</button>
                         <span style="font-size:12px; color:var(--admin-gold); font-family:monospace;" id="admin-calendar-month-title">MONTH</span>
+                        <button class="cal-nav-btn" onclick="changeMonth(1)">NEXT ▶</button>
                     </div>
                     <div class="calendar-grid">
                         <div class="cal-day-label">S</div>
@@ -563,8 +578,11 @@
                     <div class="calendar-grid" id="admin-calendar-days-container" style="margin-top: 6px;"></div>
                 </div>
 
-                <button class="btn-primary" style="background:var(--admin-gold); color:#000;" onclick="saveSelectedShifts()">SAVE SELECTED SHIFTS</button>
-                <button class="btn-secondary" style="border-color:var(--admin-gold); color:var(--admin-gold);" onclick="clearSelectedDays()">Clear Calendar Selections</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-primary" style="background:var(--admin-gold); color:#000; margin-bottom:0;" onclick="saveSelectedShifts()">SAVE SELECTED</button>
+                    <button class="btn-secondary" style="border-color:var(--admin-gold); color:var(--admin-gold); margin-bottom:0;" onclick="clearSelectedDays()">Clear Selections</button>
+                </div>
+                <button class="btn-danger" style="margin-top: 10px; margin-bottom: 0; font-size: 11px;" onclick="clearEntireMonthSchedule()">🗑️ CLEAR MONTH SCHEDULE</button>
             </div>
 
             <!-- CREATE GROUP CHAT ROOM -->
@@ -697,6 +715,7 @@
 
         let currentUser = null;
         let selectedCalendarDays = new Set();
+        let currentCalendarDate = new Date(); // Tracks currently viewed month/year
 
         window.onload = function() {
             renderNotices();
@@ -886,17 +905,26 @@
             document.getElementById('signup-box').style.display = showSignUp ? 'block' : 'none';
         }
 
+        // MONTH NAVIGATION (Prev/Next Month)
+        function changeMonth(direction) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            selectedCalendarDays.clear();
+            renderCalendar();
+            renderAdminCalendar();
+        }
+
         // CALENDAR (Officer View)
         function renderCalendar() {
-            const now = new Date();
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
             const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
-            document.getElementById('calendar-month-title').innerText = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+            document.getElementById('calendar-month-title').innerText = `${monthNames[month]} ${year}`;
 
             const container = document.getElementById('calendar-days-container');
             container.innerHTML = '';
 
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const firstDayIndex = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayIndex = new Date(year, month, 1).getDay();
 
             for (let i = 0; i < firstDayIndex; i++) {
                 const emptyCell = document.createElement('div');
@@ -906,10 +934,10 @@
             }
 
             for (let day = 1; day <= daysInMonth; day++) {
-                const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
+                const dayKey = `${year}-${month + 1}-${day}`;
                 const dayCell = document.createElement('div');
                 dayCell.className = 'cal-day-cell';
-                dayCell.onclick = () => showDayDetails(day);
+                dayCell.onclick = () => showDayDetails(year, month, day);
 
                 let badgesHtml = '';
                 if (scheduleData[dayKey] && scheduleData[dayKey].length > 0) {
@@ -926,17 +954,18 @@
 
         // ADMIN CALENDAR
         function renderAdminCalendar() {
-            const now = new Date();
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
             const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
             const titleEl = document.getElementById('admin-calendar-month-title');
-            if (titleEl) titleEl.innerText = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+            if (titleEl) titleEl.innerText = `${monthNames[month]} ${year}`;
 
             const container = document.getElementById('admin-calendar-days-container');
             if (!container) return;
             container.innerHTML = '';
 
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const firstDayIndex = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayIndex = new Date(year, month, 1).getDay();
 
             for (let i = 0; i < firstDayIndex; i++) {
                 const emptyCell = document.createElement('div');
@@ -946,7 +975,7 @@
             }
 
             for (let day = 1; day <= daysInMonth; day++) {
-                const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
+                const dayKey = `${year}-${month + 1}-${day}`;
                 const dayCell = document.createElement('div');
                 dayCell.className = `cal-day-cell ${selectedCalendarDays.has(day) ? 'selected-day' : ''}`;
                 dayCell.onclick = () => toggleCalendarDaySelection(day);
@@ -978,11 +1007,33 @@
             renderAdminCalendar();
         }
 
-        function showDayDetails(day) {
-            const now = new Date();
-            const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
+        function clearEntireMonthSchedule() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-            document.getElementById('selected-date-label').innerText = `DAY ${day} SCHEDULE`;
+            if (!confirm(`Are you sure you want to clear ALL scheduled shifts and training for ${monthNames[month]} ${year}?`)) {
+                return;
+            }
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayKey = `${year}-${month + 1}-${day}`;
+                delete scheduleData[dayKey];
+            }
+
+            localStorage.setItem('cpd_schedule', JSON.stringify(scheduleData));
+            selectedCalendarDays.clear();
+            renderAdminCalendar();
+            renderCalendar();
+            alert(`Schedule cleared for ${monthNames[month]} ${year}!`);
+        }
+
+        function showDayDetails(year, month, day) {
+            const dayKey = `${year}-${month + 1}-${day}`;
+            const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+
+            document.getElementById('selected-date-label').innerText = `${monthNames[month]} ${day}, ${year}`;
             document.getElementById('selected-date-tag').innerText = dayKey;
 
             const listContainer = document.getElementById('selected-day-details-list');
@@ -1019,7 +1070,8 @@
 
             const targetBadge = document.getElementById('admin-shift-user').value;
             const shiftType = document.getElementById('admin-shift-type').value;
-            const now = new Date();
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
 
             let targetName = "ALL OFFICERS";
             if (targetBadge !== "ALL") {
@@ -1028,7 +1080,7 @@
             }
 
             selectedCalendarDays.forEach(day => {
-                const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
+                const dayKey = `${year}-${month + 1}-${day}`;
                 if (!scheduleData[dayKey]) scheduleData[dayKey] = [];
 
                 scheduleData[dayKey].push({
@@ -1168,8 +1220,6 @@
                 div.style.cssText = "padding:12px; background:var(--bg-color); border-radius:8px; margin-bottom:12px; border:1px solid var(--border-color); font-size:12px;";
                 
                 let rankOptions = ranksList.map(r => `<option value="${r}" ${u.rank === r ? 'selected' : ''}>${r}</option>`).join('');
-                
-                // Check if this user is the Main Admin (Badge #23-22)
                 const isMainAdmin = u.badge === "23-22";
 
                 div.innerHTML = `
