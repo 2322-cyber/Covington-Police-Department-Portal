@@ -436,7 +436,6 @@
 
         <!-- 📅 SCHEDULE & CALENDAR TAB -->
         <section id="tab-schedule" class="tab-content">
-            <!-- MONTHLY CALENDAR VIEW -->
             <div class="card">
                 <div class="calendar-header">
                     <span class="card-title">MONTHLY SHIFT CALENDAR</span>
@@ -455,7 +454,6 @@
                 <div class="calendar-grid" id="calendar-days-container" style="margin-top: 6px;"></div>
             </div>
 
-            <!-- SELECTED DAY DETAILS -->
             <div class="card" id="day-detail-card">
                 <div class="card-header">
                     <span class="card-title" id="selected-date-label">SELECTED DAY DETAILS</span>
@@ -558,7 +556,6 @@
                 <div id="profile-info-body" style="font-size: 13px; line-height: 1.8;"></div>
             </div>
 
-            <!-- EDITABLE USER INFO FORM -->
             <div class="card">
                 <div class="card-title" style="margin-bottom: 12px;">EDIT ACCOUNT DETAILS</div>
                 <label>Full Name</label>
@@ -570,15 +567,6 @@
                 <label>Update Password</label>
                 <input type="password" id="edit-user-pass" placeholder="Enter new password">
                 <button class="btn-primary" onclick="saveProfileChanges()">SAVE PROFILE UPDATES</button>
-            </div>
-
-            <!-- Notifications Section -->
-            <div class="card">
-                <div class="card-title" style="margin-bottom: 10px;">NOTIFICATIONS</div>
-                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-                    Enable push notifications to get alerts for urgent department announcements and squad messages.
-                </p>
-                <button class="btn-primary" onclick="requestNotificationPermission()">ENABLE NOTIFICATIONS</button>
             </div>
 
             <button class="btn-danger" onclick="logout()" style="margin-top: 10px;">LOG OUT</button>
@@ -603,7 +591,6 @@
             <span class="tab-icon">⏱️</span>
             <span>Balances</span>
         </div>
-        <!-- DYNAMIC ADMIN TAB BUTTON -->
         <div class="tab-item admin-tab-item" id="nav-admin-btn" onclick="switchTab('admin', this)" style="display: none;">
             <span class="tab-icon">⚙️</span>
             <span>Admin</span>
@@ -615,7 +602,7 @@
     </nav>
 
     <script>
-        // DATA STORAGE & DEFAULTS
+        // DEFAULT INITIAL USER ACCOUNTS
         const DEFAULT_USERS = [
             {
                 badge: "23-22",
@@ -627,6 +614,17 @@
                 status: "approved",
                 isAdmin: true,
                 vacation: 20, personal: 5, comp: 40
+            },
+            {
+                badge: "104",
+                name: "Officer Smith",
+                rank: "Officer",
+                pass: "pass123",
+                phone: "(765) 555-0104",
+                emergency: "Jane Smith (Spouse)",
+                status: "approved",
+                isAdmin: false,
+                vacation: 12, personal: 3, comp: 15
             }
         ];
 
@@ -644,23 +642,20 @@
         let currentUser = null;
         let selectedCalendarDays = new Set();
 
-        // INITIALIZATION
         window.onload = function() {
             renderNotices();
             renderChatChannels();
             renderCalendar();
         };
 
-        // SYSTEM RESET FUNCTION
         function resetSystemData() {
             if (confirm("This will clear out cached user profile data and restore default admin settings. Continue?")) {
                 localStorage.clear();
-                alert("System data reset successfully! Re-logging in now.");
+                alert("System data reset successfully! Reloading portal.");
                 location.reload();
             }
         }
 
-        // AUTHENTICATION
         function handleLogin() {
             const badge = document.getElementById('login-badge').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
@@ -715,7 +710,6 @@
 
         function setupUserSession() {
             document.getElementById('header-user-info').innerText = `${currentUser.rank.toUpperCase()} • #${currentUser.badge}`;
-            
             renderProfileCard();
 
             document.getElementById('edit-user-name').value = currentUser.name;
@@ -727,7 +721,6 @@
             document.getElementById('bal-personal').innerText = currentUser.personal;
             document.getElementById('bal-comp').innerText = currentUser.comp;
 
-            // Admin Visibility Controls
             const adminNavBtn = document.getElementById('nav-admin-btn');
             if (currentUser.isAdmin) {
                 adminNavBtn.style.display = 'flex';
@@ -790,7 +783,7 @@
             document.getElementById('signup-box').style.display = showSignUp ? 'block' : 'none';
         }
 
-        // CALENDAR & SCHEDULING DASHBOARD
+        // CALENDAR
         function renderCalendar() {
             const now = new Date();
             const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
@@ -909,7 +902,7 @@
             renderCalendar();
         }
 
-        // CHAT & CHANNEL CREATION
+        // CHAT
         function renderChatChannels() {
             const bar = document.getElementById('chat-channels-bar');
             bar.innerHTML = chatChannels.map(ch => `
@@ -1009,15 +1002,13 @@
             document.getElementById('new-notice-card').style.display = 'none';
         }
 
-        // ADMIN USER MANAGEMENT & PTO EDITOR
+        // ADMIN USER MANAGEMENT & FIXED PTO EDITOR
         function renderAdminUserList() {
             const container = document.getElementById('users-management-list');
             if (!container) return;
             container.innerHTML = '';
 
             users.forEach((u, idx) => {
-                if (u.badge === currentUser.badge) return;
-
                 const div = document.createElement('div');
                 div.style.cssText = "padding:12px; background:var(--bg-color); border-radius:8px; margin-bottom:12px; border:1px solid var(--border-color); font-size:12px;";
                 div.innerHTML = `
@@ -1043,14 +1034,15 @@
                                 <input type="number" id="cmp-${u.badge}" value="${u.comp}" style="padding:4px; margin-bottom:0;">
                             </div>
                         </div>
-                        <button class="btn-primary" style="background:var(--admin-gold); padding:4px; margin-top:8px; margin-bottom:0; font-size:10px;" onclick="updateUserBalances('${u.badge}')">UPDATE BALANCES</button>
+                        <div style="display:flex; gap:6px; margin-top:8px;">
+                            <button class="btn-primary" style="background:var(--admin-gold); padding:6px; margin-bottom:0; font-size:10px;" onclick="updateUserBalances('${u.badge}')">SAVE INPUTS</button>
+                            <button class="btn-secondary" style="padding:6px; margin-bottom:0; font-size:10px;" onclick="promptDirectEdit('${u.badge}')">⚡ DIRECT EDIT</button>
+                        </div>
                     </div>
 
                     <div style="display:flex; gap:6px;">
                         ${u.status === 'pending' ? `<button class="btn-primary" style="padding:6px; font-size:11px;" onclick="approveUser(${idx})">Approve Officer</button>` : ''}
-                        <button class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower(${idx})">
-                            ${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}
-                        </button>
+                        ${u.badge !== currentUser.badge ? `<button class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower(${idx})">${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}</button>` : '<span style="font-size:10px; color:var(--text-secondary); align-self:center;">(Current Account)</span>'}
                     </div>
                 `;
                 container.appendChild(div);
@@ -1070,7 +1062,50 @@
             if (cmpInput) u.comp = parseInt(cmpInput.value) || 0;
 
             saveUsers();
-            alert(`Updated time-off balances for Officer #${badgeId}.`);
+            
+            // Sync if editing current logged-in user
+            if (currentUser && currentUser.badge === badgeId) {
+                currentUser.vacation = u.vacation;
+                currentUser.personal = u.personal;
+                currentUser.comp = u.comp;
+                document.getElementById('bal-vacation').innerText = u.vacation;
+                document.getElementById('bal-personal').innerText = u.personal;
+                document.getElementById('bal-comp').innerText = u.comp;
+            }
+
+            alert(`Updated time-off balances for Officer #${badgeId}!`);
+        }
+
+        function promptDirectEdit(badgeId) {
+            const u = users.find(x => x.badge === badgeId);
+            if (!u) return;
+
+            const newVac = prompt(`Enter new Vacation Days for Officer #${badgeId}:`, u.vacation);
+            if (newVac === null) return;
+
+            const newPer = prompt(`Enter new Personal Days for Officer #${badgeId}:`, u.personal);
+            if (newPer === null) return;
+
+            const newCmp = prompt(`Enter new Comp Hours for Officer #${badgeId}:`, u.comp);
+            if (newCmp === null) return;
+
+            u.vacation = parseInt(newVac) || 0;
+            u.personal = parseInt(newPer) || 0;
+            u.comp = parseInt(newCmp) || 0;
+
+            saveUsers();
+            renderAdminUserList();
+
+            if (currentUser && currentUser.badge === badgeId) {
+                currentUser.vacation = u.vacation;
+                currentUser.personal = u.personal;
+                currentUser.comp = u.comp;
+                document.getElementById('bal-vacation').innerText = u.vacation;
+                document.getElementById('bal-personal').innerText = u.personal;
+                document.getElementById('bal-comp').innerText = u.comp;
+            }
+
+            alert(`Successfully updated PTO balances for Officer #${badgeId}!`);
         }
 
         function approveUser(index) {
@@ -1086,25 +1121,6 @@
             saveUsers();
             renderAdminUserList();
             alert(`Updated admin status for ${users[index].name}.`);
-        }
-
-        // NOTIFICATIONS
-        function requestNotificationPermission() {
-            if (!("Notification" in window)) {
-                alert("This browser does not support desktop/mobile notifications.");
-                return;
-            }
-
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    alert("Notifications enabled successfully!");
-                    new Notification("Covington PD Portal", {
-                        body: "Notifications are active."
-                    });
-                } else {
-                    alert("Notification permission denied in browser settings.");
-                }
-            });
         }
 
         // TAB SWITCHING
