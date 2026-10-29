@@ -103,7 +103,7 @@
         }
 
         /* Buttons & Forms */
-        input, select, button {
+        input, select, button, textarea {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
@@ -263,9 +263,11 @@
     <!-- AUTHENTICATION OVERLAY -->
     <div id="auth-overlay">
         <div style="text-align: center; margin-bottom: 30px;">
-            <div style="font-size: 50px; margin-bottom: 10px;">🛡️</div>
-            <h1 style="font-family: monospace; color: var(--cyber-blue); font-size: 22px;">COVINGTON POLICE</h1>
-            <p style="color: var(--text-secondary); font-size: 11px; letter-spacing: 2px; font-family: monospace;">INDIANA • DEPARTMENT PORTAL</p>
+            <!-- Start-Up Page: Digitized Badge from Photo -->
+            <img src="cpd-badge.png" alt="Covington Police Badge" style="height: 140px; margin-bottom: 20px;">
+            
+            <h1 style="font-family: monospace; color: var(--cyber-blue); font-size: 20px;">COVINGTON POLICE DEPARTMENT</h1>
+            <p style="color: var(--text-secondary); font-size: 13px; letter-spacing: 2px; font-family: monospace; margin-top: 6px;">Department Portal</p>
         </div>
 
         <div class="card" id="login-box">
@@ -297,7 +299,8 @@
     <!-- APP HEADER -->
     <header>
         <div class="header-title">
-            <span>🛡️</span> COVINGTON PD
+            <img src="cpd-badge.png" alt="Badge Icon" style="height: 24px;">
+            <span>CPD</span>
         </div>
         <div class="badge-id" id="header-user-info">NOT LOGGED IN</div>
     </header>
@@ -313,7 +316,7 @@
             <div class="card" id="new-notice-card" style="display: none;">
                 <div class="card-title" style="margin-bottom: 10px;">COMPOSE ANNOUNCEMENT</div>
                 <input type="text" id="notice-title" placeholder="Title">
-                <textarea id="notice-body" placeholder="Announcement Details..." style="width:100%; height:80px; background:var(--bg-color); color:#fff; border:1px solid var(--border-color); padding:10px; border-radius:8px; margin-bottom:12px;"></textarea>
+                <textarea id="notice-body" placeholder="Announcement Details..." style="height:80px;"></textarea>
                 <button class="btn-primary" onclick="postNotice()">PUBLISH ANNOUNCEMENT</button>
             </div>
 
@@ -381,6 +384,15 @@
                     <span class="tag" id="profile-role-tag">OFFICER</span>
                 </div>
                 <p style="font-size: 13px; color: var(--text-primary); line-height: 1.8;" id="profile-info-body"></p>
+            </div>
+
+            <!-- New Section: Notifications Button -->
+            <div class="card">
+                <div class="card-title" style="margin-bottom: 10px;">NOTIFICATIONS</div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                    Enable push notifications to get alerts for urgent department announcements and squad messages.
+                </p>
+                <button class="btn-primary" onclick="requestNotificationPermission()">ENABLE NOTIFICATIONS</button>
             </div>
 
             <!-- ADMIN ONLY APPROVAL PORTAL -->
@@ -541,6 +553,27 @@
         function toggleAuthView(showSignUp) {
             document.getElementById('login-box').style.display = showSignUp ? 'none' : 'block';
             document.getElementById('signup-box').style.display = showSignUp ? 'block' : 'none';
+        }
+
+        // NOTIFICATIONS
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("This browser does not support desktop/mobile notifications.");
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    alert("Notifications enabled successfully! You will receive alerts for urgent announcements.");
+                    // Test notification
+                    new Notification("Covington PD Portal", {
+                        body: "Notifications are now active for this device.",
+                        icon: "cpd-badge.png"
+                    });
+                } else {
+                    alert("Notification permission was denied. You can change this in your iPhone Safari settings.");
+                }
+            });
         }
 
         // ADMIN FEATURES
