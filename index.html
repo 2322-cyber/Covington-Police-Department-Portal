@@ -367,7 +367,7 @@
 <body>
 
     <!-- AUTHENTICATION OVERLAY -->
-    <div id="auth-overlay">
+    <div id="auth-overlay" style="display: none;">
         <div style="text-align: center; margin-bottom: 30px;">
             <div style="font-size: 60px; margin-bottom: 10px; text-shadow: 0 0 15px var(--cyber-blue);">🛡️</div>
             <h1 style="font-family: monospace; color: var(--cyber-blue); font-size: 20px;">COVINGTON POLICE DEPARTMENT</h1>
@@ -501,7 +501,7 @@
             </div>
         </section>
 
-        <!-- ⚙️ DEDICATED ADMIN DASHBOARD TAB (Includes Integrated Calendar & Builder) -->
+        <!-- ⚙️ DEDICATED ADMIN DASHBOARD TAB -->
         <section id="tab-admin" class="tab-content">
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
@@ -509,7 +509,7 @@
                 <button class="btn-danger" style="font-size: 11px; padding: 10px;" onclick="resetSystemData()">🔄 RESET SYSTEM DATA & CLEAR CACHE</button>
             </div>
 
-            <!-- INTEGRATED SHIFT & TRAINING BUILDER WITH CALENDAR -->
+            <!-- SHIFT & TRAINING BUILDER -->
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 10px; color: var(--admin-gold);">📅 SHIFT & TRAINING BUILDER (ADMIN CALENDAR)</div>
                 <label>1. Select Officer / Group</label>
@@ -528,7 +528,6 @@
                 <label>3. Click Days on the Calendar Below to Schedule</label>
                 <p style="font-size: 11px; color: var(--admin-gold); margin-bottom: 8px;">Selected days highlight in gold.</p>
 
-                <!-- ADMIN CALENDAR GRID EMBEDDED DIRECTLY HERE -->
                 <div style="background:var(--bg-color); padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.3); margin-bottom: 12px;">
                     <div class="calendar-header">
                         <span style="font-size:12px; color:var(--admin-gold); font-family:monospace;" id="admin-calendar-month-title">MONTH</span>
@@ -665,6 +664,21 @@
             renderChatChannels();
             renderCalendar();
             renderAdminCalendar();
+
+            // Check if user was previously logged in (Persistent Session)
+            const savedBadge = localStorage.getItem('cpd_active_badge');
+            if (savedBadge) {
+                const found = users.find(u => u.badge === savedBadge);
+                if (found && found.status === 'approved') {
+                    currentUser = found;
+                    document.getElementById('auth-overlay').style.display = 'none';
+                    setupUserSession();
+                } else {
+                    document.getElementById('auth-overlay').style.display = 'flex';
+                }
+            } else {
+                document.getElementById('auth-overlay').style.display = 'flex';
+            }
         };
 
         function resetSystemData() {
@@ -692,6 +706,9 @@
             }
 
             currentUser = found;
+            // Save persistent session state so app stays logged in
+            localStorage.setItem('cpd_active_badge', currentUser.badge);
+
             document.getElementById('auth-overlay').style.display = 'none';
             setupUserSession();
         }
@@ -795,6 +812,7 @@
 
         function logout() {
             currentUser = null;
+            localStorage.removeItem('cpd_active_badge'); // Clear persistent session on explicit logout
             document.getElementById('auth-overlay').style.display = 'flex';
         }
 
@@ -841,7 +859,7 @@
             }
         }
 
-        // ADMIN CALENDAR (Integrated inside Admin Builder)
+        // ADMIN CALENDAR
         function renderAdminCalendar() {
             const now = new Date();
             const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
@@ -1180,6 +1198,25 @@
             saveUsers();
             renderAdminUserList();
             alert(`Updated admin status for ${users[index].name}.`);
+        }
+
+        // NOTIFICATIONS
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("This browser does not support desktop/mobile notifications.");
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    alert("Notifications enabled successfully!");
+                    new Notification("Covington PD Portal", {
+                        body: "Notifications are active."
+                    });
+                } else {
+                    alert("Notification permission denied in browser settings.");
+                }
+            });
         }
 
         // TAB SWITCHING
