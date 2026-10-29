@@ -227,7 +227,7 @@
             border: 1px solid rgba(0, 217, 255, 0.15);
             border-radius: 6px;
             padding: 6px 2px;
-            min-height: 52px;
+            min-height: 60px;
             font-size: 11px;
             cursor: pointer;
             display: flex;
@@ -243,18 +243,19 @@
         }
 
         .cal-shift-badge {
-            font-size: 8px;
-            padding: 1px 3px;
+            font-size: 7px;
+            padding: 1px 2px;
             border-radius: 3px;
-            margin-top: 3px;
+            margin-top: 2px;
             font-family: monospace;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             width: 100%;
+            background: rgba(0, 217, 255, 0.2);
+            color: var(--cyber-blue);
+            border: 1px solid var(--cyber-blue);
         }
-
-        .shift-day { background: rgba(0, 217, 255, 0.2); color: var(--cyber-blue); border: 1px solid var(--cyber-blue); }
 
         /* Chat Rooms Selector */
         .channel-bar {
@@ -438,9 +439,10 @@
 
                 <label>2. Select Shift Type</label>
                 <select id="admin-shift-type">
-                    <option value="Day Shift (07:00 - 15:00)">Day Shift (07:00 - 15:00)</option>
-                    <option value="Mid Shift (15:00 - 23:00)">Mid Shift (15:00 - 23:00)</option>
-                    <option value="Night Shift (23:00 - 07:00)">Night Shift (23:00 - 07:00)</option>
+                    <option value="Day Shift (06:00 - 18:00)">Day Shift (06:00 - 18:00)</option>
+                    <option value="Mid Shift (15:00 - 03:00)">Mid Shift (15:00 - 03:00)</option>
+                    <option value="Night Shift (18:00 - 06:00)">Night Shift (18:00 - 06:00)</option>
+                    <option value="Admin Shift (07:00 - 15:00)">Admin Shift (07:00 - 15:00)</option>
                     <option value="Training (Department-Wide)">Training (Mandatory Department)</option>
                     <option value="OFF">OFF / Rest Day</option>
                 </select>
@@ -789,13 +791,15 @@
                 dayCell.className = `cal-day-cell ${selectedCalendarDays.has(day) ? 'selected-day' : ''}`;
                 dayCell.onclick = () => toggleCalendarDaySelection(day);
 
-                let badgeHtml = '';
+                let badgesHtml = '';
                 if (scheduleData[dayKey] && scheduleData[dayKey].length > 0) {
-                    const shiftCount = scheduleData[dayKey].length;
-                    badgeHtml = `<div class="cal-shift-badge shift-day">${shiftCount} SHIFT${shiftCount > 1 ? 'S' : ''}</div>`;
+                    scheduleData[dayKey].forEach(e => {
+                        const badgeLabel = e.officerBadge === "ALL" ? "ALL" : `#${e.officerBadge}`;
+                        badgesHtml += `<div class="cal-shift-badge">${badgeLabel}</div>`;
+                    });
                 }
 
-                dayCell.innerHTML = `<strong>${day}</strong>${badgeHtml}`;
+                dayCell.innerHTML = `<strong>${day}</strong>${badgesHtml}`;
                 container.appendChild(dayCell);
             }
         }
@@ -830,7 +834,7 @@
             } else {
                 listContainer.innerHTML = entries.map(e => `
                     <div style="background:var(--bg-color); padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid var(--border-color);">
-                        <strong style="color:var(--cyber-blue);">${e.officerName}</strong><br>
+                        <strong style="color:var(--cyber-blue);">${e.officerName} (#${e.officerBadge})</strong><br>
                         <strong>Shift:</strong> ${e.type}
                     </div>
                 `).join('');
@@ -867,20 +871,11 @@
                 const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
                 if (!scheduleData[dayKey]) scheduleData[dayKey] = [];
 
-                if (targetBadge === "ALL") {
-                    // Training or group shift for everyone
-                    scheduleData[dayKey].push({
-                        officerBadge: "ALL",
-                        officerName: "DEPARTMENT-WIDE",
-                        type: shiftType
-                    });
-                } else {
-                    scheduleData[dayKey].push({
-                        officerBadge: targetBadge,
-                        officerName: targetName,
-                        type: shiftType
-                    });
-                }
+                scheduleData[dayKey].push({
+                    officerBadge: targetBadge,
+                    officerName: targetName,
+                    type: shiftType
+                });
             });
 
             localStorage.setItem('cpd_schedule', JSON.stringify(scheduleData));
@@ -1011,18 +1006,18 @@
                         <div class="grid-3">
                             <div>
                                 <label style="font-size:9px;">Vacation</label>
-                                <input type="number" id="vac-${idx}" value="${u.vacation}" style="padding:4px; margin-bottom:0;">
+                                <input type="number" id="vac-${u.badge}" value="${u.vacation}" style="padding:4px; margin-bottom:0;">
                             </div>
                             <div>
                                 <label style="font-size:9px;">Personal</label>
-                                <input type="number" id="per-${idx}" value="${u.personal}" style="padding:4px; margin-bottom:0;">
+                                <input type="number" id="per-${u.badge}" value="${u.personal}" style="padding:4px; margin-bottom:0;">
                             </div>
                             <div>
                                 <label style="font-size:9px;">Comp Hrs</label>
-                                <input type="number" id="cmp-${idx}" value="${u.comp}" style="padding:4px; margin-bottom:0;">
+                                <input type="number" id="cmp-${u.badge}" value="${u.comp}" style="padding:4px; margin-bottom:0;">
                             </div>
                         </div>
-                        <button class="btn-primary" style="padding:4px; margin-top:8px; margin-bottom:0; font-size:10px;" onclick="updateUserBalances(${idx})">UPDATE BALANCES</button>
+                        <button class="btn-primary" style="padding:4px; margin-top:8px; margin-bottom:0; font-size:10px;" onclick="updateUserBalances('${u.badge}')">UPDATE BALANCES</button>
                     </div>
 
                     <div style="display:flex; gap:6px;">
@@ -1036,17 +1031,20 @@
             });
         }
 
-        function updateUserBalances(idx) {
-            const vac = parseInt(document.getElementById(`vac-${idx}`).value) || 0;
-            const per = parseInt(document.getElementById(`per-${idx}`).value) || 0;
-            const cmp = parseInt(document.getElementById(`cmp-${idx}`).value) || 0;
+        function updateUserBalances(badgeId) {
+            const u = users.find(x => x.badge === badgeId);
+            if (!u) return;
 
-            users[idx].vacation = vac;
-            users[idx].personal = per;
-            users[idx].comp = cmp;
+            const vacInput = document.getElementById(`vac-${badgeId}`);
+            const perInput = document.getElementById(`per-${badgeId}`);
+            const cmpInput = document.getElementById(`cmp-${badgeId}`);
+
+            if (vacInput) u.vacation = parseInt(vacInput.value) || 0;
+            if (perInput) u.personal = parseInt(perInput.value) || 0;
+            if (cmpInput) u.comp = parseInt(cmpInput.value) || 0;
 
             saveUsers();
-            alert(`Updated time-off balances for ${users[idx].name}.`);
+            alert(`Updated time-off balances for Officer #${badgeId}.`);
         }
 
         function approveUser(index) {
