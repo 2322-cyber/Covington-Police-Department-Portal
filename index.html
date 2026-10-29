@@ -263,8 +263,8 @@
     <!-- AUTHENTICATION OVERLAY -->
     <div id="auth-overlay">
         <div style="text-align: center; margin-bottom: 30px;">
-            <!-- Start-Up Page: Digitized Badge from Photo -->
-            <img src="cpd-badge.png" alt="Covington Police Badge" style="height: 140px; margin-bottom: 20px;">
+            <!-- Shield icon replacing external image -->
+            <div style="font-size: 60px; margin-bottom: 10px; text-shadow: 0 0 15px var(--cyber-blue);">🛡️</div>
             
             <h1 style="font-family: monospace; color: var(--cyber-blue); font-size: 20px;">COVINGTON POLICE DEPARTMENT</h1>
             <p style="color: var(--text-secondary); font-size: 13px; letter-spacing: 2px; font-family: monospace; margin-top: 6px;">Department Portal</p>
@@ -299,8 +299,7 @@
     <!-- APP HEADER -->
     <header>
         <div class="header-title">
-            <img src="cpd-badge.png" alt="Badge Icon" style="height: 24px;">
-            <span>CPD</span>
+            <span>🛡️ CPD PORTAL</span>
         </div>
         <div class="badge-id" id="header-user-info">NOT LOGGED IN</div>
     </header>
@@ -386,7 +385,7 @@
                 <p style="font-size: 13px; color: var(--text-primary); line-height: 1.8;" id="profile-info-body"></p>
             </div>
 
-            <!-- New Section: Notifications Button -->
+            <!-- Notifications Section -->
             <div class="card">
                 <div class="card-title" style="margin-bottom: 10px;">NOTIFICATIONS</div>
                 <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
@@ -565,10 +564,8 @@
             Notification.requestPermission().then(permission => {
                 if (permission === "granted") {
                     alert("Notifications enabled successfully! You will receive alerts for urgent announcements.");
-                    // Test notification
                     new Notification("Covington PD Portal", {
-                        body: "Notifications are now active for this device.",
-                        icon: "cpd-badge.png"
+                        body: "Notifications are now active for this device."
                     });
                 } else {
                     alert("Notification permission was denied. You can change this in your iPhone Safari settings.");
@@ -582,7 +579,7 @@
             container.innerHTML = '';
 
             users.forEach((u, idx) => {
-                if (u.badge === currentUser.badge) return; // Skip self
+                if (u.badge === currentUser.badge) return;
 
                 const div = document.createElement('div');
                 div.style.cssText = "padding:10px; background:var(--bg-color); border-radius:8px; margin-bottom:8px; font-size:12px;";
