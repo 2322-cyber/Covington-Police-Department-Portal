@@ -157,6 +157,24 @@
             cursor: pointer;
         }
 
+        /* Checkbox styling */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            font-family: monospace;
+            cursor: pointer;
+        }
+
+        .checkbox-group input {
+            width: 18px;
+            height: 18px;
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+
         /* Navigation */
         nav {
             position: fixed;
@@ -397,6 +415,7 @@
                 <option value="Sergeant">Sergeant</option>
                 <option value="Lieutenant">Lieutenant</option>
                 <option value="Captain">Captain</option>
+                <option value="Assistant Chief">Assistant Chief</option>
                 <option value="Chief of Police">Chief of Police</option>
             </select>
             <label>Phone Number</label>
@@ -434,7 +453,7 @@
             <div id="notices-list"></div>
         </section>
 
-        <!-- 📅 SCHEDULE & CALENDAR TAB (Officer View) -->
+        <!-- 📅 SCHEDULE & CALENDAR TAB -->
         <section id="tab-schedule" class="tab-content">
             <div class="card">
                 <div class="calendar-header">
@@ -505,7 +524,7 @@
         <section id="tab-admin" class="tab-content">
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
-                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls for shift scheduling, group chat rooms, officer approvals, and PTO balance adjustments.</p>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls for shift scheduling, group chat rooms, officer approvals, rank adjustments, and PTO balance management.</p>
                 <button class="btn-danger" style="font-size: 11px; padding: 10px;" onclick="resetSystemData()">🔄 RESET SYSTEM DATA & CLEAR CACHE</button>
             </div>
 
@@ -557,9 +576,9 @@
                 </div>
             </div>
 
-            <!-- USER MANAGEMENT & PTO BALANCES -->
+            <!-- USER MANAGEMENT, RANKS & PTO BALANCES -->
             <div class="card">
-                <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">👤 OFFICER ACCOUNTS & PTO BALANCES</div>
+                <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">👤 OFFICER ACCOUNTS, RANKS & PTO BALANCES</div>
                 <div id="users-management-list"></div>
             </div>
         </section>
@@ -572,6 +591,24 @@
                     <span class="tag" id="profile-role-tag">OFFICER</span>
                 </div>
                 <div id="profile-info-body" style="font-size: 13px; line-height: 1.8;"></div>
+            </div>
+
+            <!-- NOTIFICATION PREFERENCES -->
+            <div class="card">
+                <div class="card-title" style="margin-bottom: 12px;">🔔 NOTIFICATION PREFERENCES</div>
+                <label class="checkbox-group">
+                    <input type="checkbox" id="notif-announcements" onchange="updateNotificationPrefs()">
+                    <span>Enable Announcement Alerts</span>
+                </label>
+                <label class="checkbox-group">
+                    <input type="checkbox" id="notif-chat" onchange="updateNotificationPrefs()">
+                    <span>Enable New Chat Message Alerts</span>
+                </label>
+                <label class="checkbox-group">
+                    <input type="checkbox" id="notif-schedule" onchange="updateNotificationPrefs()">
+                    <span>Enable Schedule Update Alerts</span>
+                </label>
+                <button class="btn-secondary" style="margin-top: 8px; margin-bottom: 0; font-size: 11px;" onclick="requestNotificationPermission()">GRANT BROWSER PERMISSION</button>
             </div>
 
             <div class="card">
@@ -630,7 +667,8 @@
                 emergency: "Dispatch / Shift Captain",
                 status: "approved",
                 isAdmin: true,
-                vacation: 20, personal: 5, comp: 40
+                vacation: 20, personal: 5, comp: 40,
+                notifications: { announcements: true, chat: true, schedule: true }
             },
             {
                 badge: "104",
@@ -641,7 +679,8 @@
                 emergency: "Jane Smith (Spouse)",
                 status: "approved",
                 isAdmin: false,
-                vacation: 12, personal: 3, comp: 15
+                vacation: 12, personal: 3, comp: 15,
+                notifications: { announcements: true, chat: true, schedule: true }
             }
         ];
 
@@ -665,7 +704,6 @@
             renderCalendar();
             renderAdminCalendar();
 
-            // Check if user was previously logged in (Persistent Session)
             const savedBadge = localStorage.getItem('cpd_active_badge');
             if (savedBadge) {
                 const found = users.find(u => u.badge === savedBadge);
@@ -706,7 +744,9 @@
             }
 
             currentUser = found;
-            // Save persistent session state so app stays logged in
+            if (!currentUser.notifications) {
+                currentUser.notifications = { announcements: true, chat: true, schedule: true };
+            }
             localStorage.setItem('cpd_active_badge', currentUser.badge);
 
             document.getElementById('auth-overlay').style.display = 'none';
@@ -734,7 +774,8 @@
                 badge, name, rank, pass, phone: phone || "N/A", emergency: "N/A",
                 status: 'pending',
                 isAdmin: false,
-                vacation: 10, personal: 3, comp: 0
+                vacation: 10, personal: 3, comp: 0,
+                notifications: { announcements: true, chat: true, schedule: true }
             };
 
             users.push(newUser);
@@ -752,6 +793,12 @@
             document.getElementById('edit-user-phone').value = currentUser.phone || '';
             document.getElementById('edit-user-emergency').value = currentUser.emergency || '';
             document.getElementById('edit-user-pass').value = currentUser.pass;
+
+            // Notification preferences toggles
+            if (!currentUser.notifications) currentUser.notifications = { announcements: true, chat: true, schedule: true };
+            document.getElementById('notif-announcements').checked = currentUser.notifications.announcements;
+            document.getElementById('notif-chat').checked = currentUser.notifications.chat;
+            document.getElementById('notif-schedule').checked = currentUser.notifications.schedule;
 
             document.getElementById('bal-vacation').innerText = currentUser.vacation;
             document.getElementById('bal-personal').innerText = currentUser.personal;
@@ -786,6 +833,25 @@
             if (currentUser.isAdmin) document.getElementById('profile-role-tag').classList.add('tag-admin');
         }
 
+        function updateNotificationPrefs() {
+            if (!currentUser) return;
+            currentUser.notifications = {
+                announcements: document.getElementById('notif-announcements').checked,
+                chat: document.getElementById('notif-chat').checked,
+                schedule: document.getElementById('notif-schedule').checked
+            };
+            const idx = users.findIndex(u => u.badge === currentUser.badge);
+            if (idx !== -1) users[idx] = currentUser;
+            saveUsers();
+        }
+
+        function triggerSystemNotification(title, body, prefKey) {
+            if (!currentUser || !currentUser.notifications || !currentUser.notifications[prefKey]) return;
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, { body });
+            }
+        }
+
         function saveProfileChanges() {
             const newName = document.getElementById('edit-user-name').value.trim();
             const newPhone = document.getElementById('edit-user-phone').value.trim();
@@ -806,13 +872,13 @@
             if (idx !== -1) users[idx] = currentUser;
 
             saveUsers();
-            renderProfileCard();
+            setupUserSession();
             alert("Account details updated successfully!");
         }
 
         function logout() {
             currentUser = null;
-            localStorage.removeItem('cpd_active_badge'); // Clear persistent session on explicit logout
+            localStorage.removeItem('cpd_active_badge');
             document.getElementById('auth-overlay').style.display = 'flex';
         }
 
@@ -974,6 +1040,10 @@
             });
 
             localStorage.setItem('cpd_schedule', JSON.stringify(scheduleData));
+            
+            // Trigger Schedule Change Notification
+            triggerSystemNotification("📅 Schedule Updated", `New shifts/training posted for ${selectedCalendarDays.size} day(s).`, "schedule");
+
             alert(`Shifts saved for ${selectedCalendarDays.size} day(s)!`);
             selectedCalendarDays.clear();
             renderAdminCalendar();
@@ -1033,13 +1103,18 @@
             const text = input.value.trim();
             if (!text || !currentUser) return;
 
-            chatMessages.push({
+            const newMsg = {
                 channel: activeChannel,
                 author: `${currentUser.rank} ${currentUser.name}`,
                 text
-            });
+            };
 
+            chatMessages.push(newMsg);
             localStorage.setItem('cpd_chat_msgs', JSON.stringify(chatMessages));
+
+            // Trigger Chat Notification
+            triggerSystemNotification(`💬 #${activeChannel} Message`, `${newMsg.author}: ${text}`, "chat");
+
             renderChat();
             input.value = '';
         }
@@ -1076,23 +1151,53 @@
 
             notices.unshift({ id: Date.now(), title, body, author: currentUser.name, urgent: true });
             localStorage.setItem('cpd_notices', JSON.stringify(notices));
+
+            // Trigger Announcement Notification
+            triggerSystemNotification(`📢 New Notice: ${title}`, body, "announcements");
+
             renderNotices();
             document.getElementById('new-notice-card').style.display = 'none';
         }
 
-        // ADMIN USER MANAGEMENT & PTO EDITOR
+        // ADMIN USER MANAGEMENT, RANKS & PTO EDITOR
         function renderAdminUserList() {
             const container = document.getElementById('users-management-list');
             if (!container) return;
             container.innerHTML = '';
 
+            const ranksList = ["Officer", "Corporal", "Sergeant", "Lieutenant", "Captain", "Assistant Chief", "Chief of Police"];
+
             users.forEach((u, idx) => {
                 const div = document.createElement('div');
                 div.style.cssText = "padding:12px; background:var(--bg-color); border-radius:8px; margin-bottom:12px; border:1px solid var(--border-color); font-size:12px;";
+                
+                let rankOptions = ranksList.map(r => `<option value="${r}" ${u.rank === r ? 'selected' : ''}>${r}</option>`).join('');
+
                 div.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                         <strong>${u.name} (#${u.badge})</strong>
                         <span class="badge-status ${u.status === 'pending' ? 'status-pending' : 'status-approved'}">${u.status.toUpperCase()}</span>
+                    </div>
+
+                    <!-- Edit Officer Details & Ranks -->
+                    <div style="background:rgba(18,26,38,0.8); padding:8px; border-radius:6px; margin-bottom:10px;">
+                        <div style="font-size:10px; color:var(--admin-gold); margin-bottom:6px; font-weight:bold;">EDIT OFFICER DETAILS & RANK</div>
+                        <label style="font-size:9px;">Full Name</label>
+                        <input type="text" id="name-${u.badge}" value="${u.name}" style="padding:4px; margin-bottom:6px;">
+                        
+                        <div class="grid-2">
+                            <div>
+                                <label style="font-size:9px;">Rank</label>
+                                <select id="rank-${u.badge}" style="padding:4px; margin-bottom:6px;">${rankOptions}</select>
+                            </div>
+                            <div>
+                                <label style="font-size:9px;">Phone</label>
+                                <input type="text" id="phone-${u.badge}" value="${u.phone || ''}" style="padding:4px; margin-bottom:6px;">
+                            </div>
+                        </div>
+                        <label style="font-size:9px;">Emergency Contact</label>
+                        <input type="text" id="emerg-${u.badge}" value="${u.emergency || ''}" style="padding:4px; margin-bottom:6px;">
+                        <button class="btn-primary" style="background:var(--admin-gold); padding:6px; margin-bottom:0; font-size:10px;" onclick="updateUserDetails('${u.badge}')">SAVE DETAILS</button>
                     </div>
 
                     <!-- PTO Balance Controls -->
@@ -1113,18 +1218,44 @@
                             </div>
                         </div>
                         <div style="display:flex; gap:6px; margin-top:8px;">
-                            <button class="btn-primary" style="background:var(--admin-gold); padding:6px; margin-bottom:0; font-size:10px;" onclick="updateUserBalances('${u.badge}')">SAVE INPUTS</button>
+                            <button class="btn-primary" style="background:var(--admin-gold); padding:6px; margin-bottom:0; font-size:10px;" onclick="updateUserBalances('${u.badge}')">SAVE BALANCES</button>
                             <button class="btn-secondary" style="padding:6px; margin-bottom:0; font-size:10px;" onclick="promptDirectEdit('${u.badge}')">⚡ DIRECT EDIT</button>
                         </div>
                     </div>
 
                     <div style="display:flex; gap:6px;">
                         ${u.status === 'pending' ? `<button class="btn-primary" style="padding:6px; font-size:11px;" onclick="approveUser(${idx})">Approve Officer</button>` : ''}
-                        ${u.badge !== currentUser.badge ? `<button class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower(${idx})">${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}</button>` : '<span style="font-size:10px; color:var(--text-secondary); align-self:center;">(Current Account)</span>'}
+                        <button class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower(${idx})">${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}</button>
                     </div>
                 `;
                 container.appendChild(div);
             });
+        }
+
+        function updateUserDetails(badgeId) {
+            const u = users.find(x => x.badge === badgeId);
+            if (!u) return;
+
+            const nameInput = document.getElementById(`name-${badgeId}`);
+            const rankInput = document.getElementById(`rank-${badgeId}`);
+            const phoneInput = document.getElementById(`phone-${badgeId}`);
+            const emergInput = document.getElementById(`emerg-${badgeId}`);
+
+            if (nameInput) u.name = nameInput.value.trim();
+            if (rankInput) u.rank = rankInput.value;
+            if (phoneInput) u.phone = phoneInput.value.trim();
+            if (emergInput) u.emergency = emergInput.value.trim();
+
+            saveUsers();
+            renderAdminUserList();
+            populateAdminUserDropdown();
+
+            if (currentUser && currentUser.badge === badgeId) {
+                currentUser = u;
+                setupUserSession();
+            }
+
+            alert(`Updated profile details for Officer #${badgeId}!`);
         }
 
         function updateUserBalances(badgeId) {
@@ -1194,27 +1325,29 @@
         }
 
         function toggleAdminPower(index) {
+            if (users[index].badge === currentUser.badge && users[index].isAdmin) {
+                alert("You cannot revoke your own admin status.");
+                return;
+            }
             users[index].isAdmin = !users[index].isAdmin;
             saveUsers();
             renderAdminUserList();
             alert(`Updated admin status for ${users[index].name}.`);
         }
 
-        // NOTIFICATIONS
+        // NOTIFICATIONS PERMISSION
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
-                alert("This browser does not support desktop/mobile notifications.");
+                alert("This browser does not support notifications.");
                 return;
             }
 
             Notification.requestPermission().then(permission => {
                 if (permission === "granted") {
-                    alert("Notifications enabled successfully!");
-                    new Notification("Covington PD Portal", {
-                        body: "Notifications are active."
-                    });
+                    alert("Notification permissions granted successfully!");
+                    new Notification("Covington PD", { body: "Notifications are active." });
                 } else {
-                    alert("Notification permission denied in browser settings.");
+                    alert("Notification permission was denied in your browser settings.");
                 }
             });
         }
