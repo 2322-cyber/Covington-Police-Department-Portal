@@ -19,6 +19,7 @@
             --border-color: rgba(0, 217, 255, 0.3);
             --danger: #ff4757;
             --success: #2ed573;
+            --warning: #ffa500;
         }
 
         * {
@@ -102,7 +103,16 @@
             color: var(--text-secondary);
         }
 
-        /* Buttons & Forms */
+        /* Forms & Inputs */
+        label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: monospace;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
         input, select, button, textarea {
             width: 100%;
             padding: 12px;
@@ -115,7 +125,7 @@
             outline: none;
         }
 
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             border-color: var(--cyber-blue);
             box-shadow: 0 0 8px rgba(0, 217, 255, 0.4);
         }
@@ -145,7 +155,7 @@
             font-weight: bold;
         }
 
-        /* Bottom Tab Navigation */
+        /* Navigation */
         nav {
             position: fixed;
             bottom: 0;
@@ -181,13 +191,97 @@
             font-size: 20px;
         }
 
-        /* Screen Sections */
         .tab-content {
             display: none;
         }
 
         .tab-content.active {
             display: block;
+        }
+
+        /* Calendar Grid Styling */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-family: monospace;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+
+        .cal-day-label {
+            font-size: 10px;
+            color: var(--cyber-blue);
+            font-family: monospace;
+            padding-bottom: 4px;
+        }
+
+        .cal-day-cell {
+            background: rgba(18, 26, 38, 0.6);
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            border-radius: 6px;
+            padding: 6px 2px;
+            min-height: 52px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .cal-day-cell.active-day {
+            border-color: var(--cyber-blue);
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        .cal-shift-badge {
+            font-size: 8px;
+            padding: 1px 3px;
+            border-radius: 3px;
+            margin-top: 3px;
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .shift-day { background: rgba(0, 217, 255, 0.2); color: var(--cyber-blue); border: 1px solid var(--cyber-blue); }
+        .shift-night { background: rgba(138, 43, 226, 0.3); color: #c8a2c8; border: 1px solid #c8a2c8; }
+        .shift-off { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+
+        /* Chat Rooms Selector */
+        .channel-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .channel-chip {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: monospace;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .channel-chip.active {
+            background: var(--cyber-blue);
+            color: #000;
+            font-weight: bold;
         }
 
         .grid-2 {
@@ -239,10 +333,9 @@
             font-family: monospace;
         }
 
-        .status-pending { background: rgba(255, 165, 0, 0.2); color: orange; border: 1px solid orange; }
+        .status-pending { background: rgba(255, 165, 0, 0.2); color: var(--warning); border: 1px solid var(--warning); }
         .status-approved { background: rgba(46, 213, 115, 0.2); color: var(--success); border: 1px solid var(--success); }
 
-        /* Login Screen Overlay */
         #auth-overlay {
             position: fixed;
             top: 0;
@@ -255,6 +348,7 @@
             flex-direction: column;
             justify-content: center;
             padding: 30px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -263,16 +357,16 @@
     <!-- AUTHENTICATION OVERLAY -->
     <div id="auth-overlay">
         <div style="text-align: center; margin-bottom: 30px;">
-            <!-- Shield icon replacing external image -->
             <div style="font-size: 60px; margin-bottom: 10px; text-shadow: 0 0 15px var(--cyber-blue);">🛡️</div>
-            
             <h1 style="font-family: monospace; color: var(--cyber-blue); font-size: 20px;">COVINGTON POLICE DEPARTMENT</h1>
             <p style="color: var(--text-secondary); font-size: 13px; letter-spacing: 2px; font-family: monospace; margin-top: 6px;">Department Portal</p>
         </div>
 
         <div class="card" id="login-box">
             <h3 style="font-family: monospace; color: var(--text-secondary); font-size: 13px; margin-bottom: 15px;">OFFICER AUTHENTICATION</h3>
-            <input type="text" id="login-badge" placeholder="Badge Number (e.g., 23-22)">
+            <label>Badge Number</label>
+            <input type="text" id="login-badge" placeholder="e.g., 23-22">
+            <label>Password</label>
             <input type="password" id="login-pass" placeholder="Password">
             <button class="btn-primary" onclick="handleLogin()">ACCESS SYSTEM</button>
             <button class="btn-secondary" onclick="toggleAuthView(true)">Request New Account</button>
@@ -280,8 +374,11 @@
 
         <div class="card" id="signup-box" style="display: none;">
             <h3 style="font-family: monospace; color: var(--text-secondary); font-size: 13px; margin-bottom: 15px;">REQUEST OFFICER ACCOUNT</h3>
-            <input type="text" id="reg-name" placeholder="Full Name">
-            <input type="text" id="reg-badge" placeholder="Badge Number (e.g., 23-22)">
+            <label>Full Name</label>
+            <input type="text" id="reg-name" placeholder="Officer Full Name">
+            <label>Badge Number</label>
+            <input type="text" id="reg-badge" placeholder="e.g., 23-22">
+            <label>Rank</label>
             <select id="reg-rank">
                 <option value="Officer">Officer</option>
                 <option value="Corporal">Corporal</option>
@@ -290,6 +387,9 @@
                 <option value="Captain">Captain</option>
                 <option value="Chief of Police">Chief of Police</option>
             </select>
+            <label>Phone Number</label>
+            <input type="tel" id="reg-phone" placeholder="(555) 000-0000">
+            <label>Create Password</label>
             <input type="password" id="reg-pass" placeholder="Create Password">
             <button class="btn-primary" onclick="handleRegister()">SUBMIT FOR APPROVAL</button>
             <button class="btn-secondary" onclick="toggleAuthView(false)">Back to Sign In</button>
@@ -322,31 +422,75 @@
             <div id="notices-list"></div>
         </section>
 
-        <!-- 📅 SCHEDULE TAB -->
+        <!-- 📅 SCHEDULE & CALENDAR TAB -->
         <section id="tab-schedule" class="tab-content">
-            <div id="admin-schedule-tools" style="display: none;">
-                <button class="btn-secondary" onclick="autoFillSchedule()" style="margin-bottom: 15px;">⚡ Auto-Fill Month Schedule</button>
+            <!-- ADMIN CALENDAR CONTROL PORTAL -->
+            <div class="card" id="admin-schedule-tools" style="display: none;">
+                <div class="card-title" style="margin-bottom: 10px; color: #ffd700;">⚙️ SCHEDULE DASHBOARD & EDITOR</div>
+                <label>Select Date to Post/Update Shift</label>
+                <input type="date" id="admin-shift-date">
+                <label>Assign Officer / Squad</label>
+                <select id="admin-shift-user"></select>
+                <label>Shift Type</label>
+                <select id="admin-shift-type">
+                    <option value="DAY (06:00 - 18:00)">Day Shift (06:00 - 18:00)</option>
+                    <option value="NIGHT (18:00 - 06:00)">Night Shift (18:00 - 06:00)</option>
+                    <option value="OFF">OFF / Rest Day</option>
+                    <option value="TRAINING">Special Training</option>
+                </select>
+                <label>Patrol Zone / Assignment Details</label>
+                <input type="text" id="admin-shift-zone" placeholder="e.g. Zone 2 / Traffic">
+                <button class="btn-primary" onclick="saveShiftAssignment()">POST TO CALENDAR</button>
             </div>
 
+            <!-- MONTHLY CALENDAR VIEW -->
             <div class="card">
-                <div class="card-header">
-                    <span class="card-title">YOUR CURRENT SHIFT</span>
-                    <span class="tag">DAY SHIFT</span>
+                <div class="calendar-header">
+                    <span class="card-title">MONTHLY SHIFT CALENDAR</span>
+                    <span style="font-size: 12px; color: var(--cyber-blue);" id="calendar-month-title">MONTH</span>
                 </div>
-                <p style="font-size: 13px; color: var(--text-primary);">06:00 - 18:00 • Patrol Zone 2</p>
+                
+                <div class="calendar-grid">
+                    <div class="cal-day-label">S</div>
+                    <div class="cal-day-label">M</div>
+                    <div class="cal-day-label">T</div>
+                    <div class="cal-day-label">W</div>
+                    <div class="cal-day-label">T</div>
+                    <div class="cal-day-label">F</div>
+                    <div class="cal-day-label">S</div>
+                </div>
+                <div class="calendar-grid" id="calendar-days-container" style="margin-top: 6px;"></div>
             </div>
 
-            <div class="card">
-                <div class="card-title" style="margin-bottom: 12px;">DEPARTMENT ROSTER & SHIFTS</div>
-                <div id="schedule-calendar-view" style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);"></div>
+            <!-- SELECTED DAY DETAILS -->
+            <div class="card" id="day-detail-card">
+                <div class="card-header">
+                    <span class="card-title" id="selected-date-label">SELECTED DAY DETAILS</span>
+                    <span class="tag" id="selected-date-tag">CLICK A DAY</span>
+                </div>
+                <div id="selected-day-details-list" style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                    Select any calendar date above to view assigned duty shifts for all officers.
+                </div>
             </div>
         </section>
 
-        <!-- 💬 MESSAGING TAB -->
+        <!-- 💬 MESSAGING & CHAT ROOMS TAB -->
         <section id="tab-messages" class="tab-content">
+            <!-- ADMIN CREATE CHAT ROOM TOOLS -->
+            <div class="card" id="admin-chat-tools" style="display: none;">
+                <div class="card-title" style="margin-bottom: 10px; color: #ffd700;">⚙️ CREATE NEW GROUP CHAT ROOM</div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="new-channel-name" placeholder="Channel Name (e.g. Shift-A)" style="margin-bottom:0;">
+                    <button class="btn-primary" onclick="createChatChannel()" style="width: 110px;">CREATE</button>
+                </div>
+            </div>
+
             <div class="card">
-                <div class="card-title" style="margin-bottom: 10px;">SQUAD GROUP CHAT</div>
-                <div id="chat-box" style="height: 180px; overflow-y: auto; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 12px;"></div>
+                <div class="card-title" style="margin-bottom: 10px;">DEPARTMENT CHANNELS</div>
+                <div class="channel-bar" id="chat-channels-bar"></div>
+
+                <div id="chat-box" style="height: 220px; overflow-y: auto; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 12px;"></div>
+                
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="chat-msg" placeholder="Type message..." style="margin-bottom:0;">
                     <button class="btn-primary" onclick="sendMessage()" style="width: 80px;">SEND</button>
@@ -375,14 +519,28 @@
             </div>
         </section>
 
-        <!-- 👤 PROFILE & ADMIN PORTAL TAB -->
+        <!-- 👤 PROFILE & EDIT USER INFO TAB -->
         <section id="tab-profile" class="tab-content">
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">OFFICER PROFILE</span>
                     <span class="tag" id="profile-role-tag">OFFICER</span>
                 </div>
-                <p style="font-size: 13px; color: var(--text-primary); line-height: 1.8;" id="profile-info-body"></p>
+                <div id="profile-info-body" style="font-size: 13px; line-height: 1.8;"></div>
+            </div>
+
+            <!-- EDITABLE USER INFO FORM -->
+            <div class="card">
+                <div class="card-title" style="margin-bottom: 12px;">EDIT ACCOUNT DETAILS</div>
+                <label>Full Name</label>
+                <input type="text" id="edit-user-name">
+                <label>Contact Phone Number</label>
+                <input type="tel" id="edit-user-phone">
+                <label>Emergency Contact</label>
+                <input type="text" id="edit-user-emergency" placeholder="Name & Contact Number">
+                <label>Update Password</label>
+                <input type="password" id="edit-user-pass" placeholder="Enter new password">
+                <button class="btn-primary" onclick="saveProfileChanges()">SAVE PROFILE UPDATES</button>
             </div>
 
             <!-- Notifications Section -->
@@ -394,10 +552,10 @@
                 <button class="btn-primary" onclick="requestNotificationPermission()">ENABLE NOTIFICATIONS</button>
             </div>
 
-            <!-- ADMIN ONLY APPROVAL PORTAL -->
+            <!-- ADMIN ONLY USER APPROVAL PORTAL -->
             <div class="card" id="admin-approval-panel" style="display: none;">
-                <div class="card-title" style="margin-bottom: 12px; color: #ffd700;">⚙️ ADMIN MANAGEMENT PORTAL</div>
-                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Approve new registration requests or manage administrative access for officers.</p>
+                <div class="card-title" style="margin-bottom: 12px; color: #ffd700;">⚙️ USER MANAGEMENT PORTAL</div>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Approve registration requests or adjust privileges for officers.</p>
                 <div id="users-management-list"></div>
             </div>
 
@@ -430,18 +588,18 @@
     </nav>
 
     <script>
-        // DATA MODELS
+        // DATA STORAGE & DEFAULTS
         const DEFAULT_USERS = [
             {
                 badge: "23-22",
                 name: "Admin Officer",
                 rank: "Chief of Police",
                 pass: "admin123",
+                phone: "(765) 555-0199",
+                emergency: "Dispatch / Shift Captain",
                 status: "approved",
                 isAdmin: true,
-                vacation: 20,
-                personal: 5,
-                comp: 40
+                vacation: 20, personal: 5, comp: 40
             }
         ];
 
@@ -449,17 +607,21 @@
         let notices = JSON.parse(localStorage.getItem('cpd_notices')) || [
             { id: 1, title: "MANDATORY BRIEFING", body: "All shift leads report to dispatch at 07:00.", author: "Chief of Police", urgent: true }
         ];
-        let chatMessages = JSON.parse(localStorage.getItem('cpd_chat')) || [
-            { author: "Sgt. Miller", text: "All units report status." }
+        let chatChannels = JSON.parse(localStorage.getItem('cpd_chat_channels')) || ["General Squad", "Shift A Patrol", "Command Staff"];
+        let activeChannel = chatChannels[0];
+        let chatMessages = JSON.parse(localStorage.getItem('cpd_chat_msgs')) || [
+            { channel: "General Squad", author: "Chief of Police", text: "Welcome to the new Covington PD portal chat!" }
         ];
+        let scheduleData = JSON.parse(localStorage.getItem('cpd_schedule')) || {};
 
         let currentUser = null;
+        let selectedCalendarDay = new Date().getDate();
 
         // INITIALIZATION
         window.onload = function() {
             renderNotices();
-            renderChat();
-            renderSchedule();
+            renderChatChannels();
+            renderCalendar();
         };
 
         // AUTHENTICATION
@@ -488,10 +650,11 @@
             const name = document.getElementById('reg-name').value.trim();
             const badge = document.getElementById('reg-badge').value.trim();
             const rank = document.getElementById('reg-rank').value;
+            const phone = document.getElementById('reg-phone').value.trim();
             const pass = document.getElementById('reg-pass').value.trim();
 
             if (!name || !badge || !pass) {
-                alert("Please fill in all fields.");
+                alert("Please fill in all required fields.");
                 return;
             }
 
@@ -501,7 +664,7 @@
             }
 
             const newUser = {
-                badge, name, rank, pass,
+                badge, name, rank, pass, phone: phone || "N/A", emergency: "N/A",
                 status: 'pending',
                 isAdmin: false,
                 vacation: 10, personal: 3, comp: 0
@@ -516,32 +679,76 @@
 
         function setupUserSession() {
             document.getElementById('header-user-info').innerText = `${currentUser.rank.toUpperCase()} • #${currentUser.badge}`;
+            
+            // Populate User Profile View & Edit Inputs
+            renderProfileCard();
+
+            document.getElementById('edit-user-name').value = currentUser.name;
+            document.getElementById('edit-user-phone').value = currentUser.phone || '';
+            document.getElementById('edit-user-emergency').value = currentUser.emergency || '';
+            document.getElementById('edit-user-pass').value = currentUser.pass;
+
+            // Balances
+            document.getElementById('bal-vacation').innerText = currentUser.vacation;
+            document.getElementById('bal-personal').innerText = currentUser.personal;
+            document.getElementById('bal-comp').innerText = currentUser.comp;
+
+            // Admin Dashboard Access Controls
+            if (currentUser.isAdmin) {
+                document.getElementById('admin-notice-tools').style.display = 'block';
+                document.getElementById('admin-schedule-tools').style.display = 'block';
+                document.getElementById('admin-chat-tools').style.display = 'block';
+                document.getElementById('admin-approval-panel').style.display = 'block';
+                populateAdminUserDropdown();
+                renderAdminUserList();
+            } else {
+                document.getElementById('admin-notice-tools').style.display = 'none';
+                document.getElementById('admin-schedule-tools').style.display = 'none';
+                document.getElementById('admin-chat-tools').style.display = 'none';
+                document.getElementById('admin-approval-panel').style.display = 'none';
+            }
+
+            renderCalendar();
+            selectCalendarDay(new Date().getDate());
+        }
+
+        function renderProfileCard() {
             document.getElementById('profile-info-body').innerHTML = `
                 <strong>Name:</strong> ${currentUser.name}<br>
                 <strong>Badge:</strong> #${currentUser.badge}<br>
                 <strong>Rank:</strong> ${currentUser.rank}<br>
+                <strong>Phone:</strong> ${currentUser.phone || 'N/A'}<br>
+                <strong>Emergency Contact:</strong> ${currentUser.emergency || 'N/A'}<br>
                 <strong>Status:</strong> <span class="badge-status status-approved">ACTIVE</span>
             `;
 
             document.getElementById('profile-role-tag').innerText = currentUser.isAdmin ? "ADMINISTRATOR" : "OFFICER";
             if (currentUser.isAdmin) document.getElementById('profile-role-tag').classList.add('tag-admin');
+        }
 
-            // Set Balances
-            document.getElementById('bal-vacation').innerText = currentUser.vacation;
-            document.getElementById('bal-personal').innerText = currentUser.personal;
-            document.getElementById('bal-comp').innerText = currentUser.comp;
+        function saveProfileChanges() {
+            const newName = document.getElementById('edit-user-name').value.trim();
+            const newPhone = document.getElementById('edit-user-phone').value.trim();
+            const newEmergency = document.getElementById('edit-user-emergency').value.trim();
+            const newPass = document.getElementById('edit-user-pass').value.trim();
 
-            // Admin Visibility Rules
-            if (currentUser.isAdmin) {
-                document.getElementById('admin-notice-tools').style.display = 'block';
-                document.getElementById('admin-schedule-tools').style.display = 'block';
-                document.getElementById('admin-approval-panel').style.display = 'block';
-                renderAdminUserList();
-            } else {
-                document.getElementById('admin-notice-tools').style.display = 'none';
-                document.getElementById('admin-schedule-tools').style.display = 'none';
-                document.getElementById('admin-approval-panel').style.display = 'none';
+            if (!newName || !newPass) {
+                alert("Name and Password cannot be empty.");
+                return;
             }
+
+            currentUser.name = newName;
+            currentUser.phone = newPhone;
+            currentUser.emergency = newEmergency;
+            currentUser.pass = newPass;
+
+            // Save back into users array
+            const idx = users.findIndex(u => u.badge === currentUser.badge);
+            if (idx !== -1) users[idx] = currentUser;
+
+            saveUsers();
+            renderProfileCard();
+            alert("Account details updated successfully!");
         }
 
         function logout() {
@@ -554,63 +761,177 @@
             document.getElementById('signup-box').style.display = showSignUp ? 'block' : 'none';
         }
 
-        // NOTIFICATIONS
-        function requestNotificationPermission() {
-            if (!("Notification" in window)) {
-                alert("This browser does not support desktop/mobile notifications.");
-                return;
+        // CALENDAR & SCHEDULING DASHBOARD
+        function renderCalendar() {
+            const now = new Date();
+            const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+            document.getElementById('calendar-month-title').innerText = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+
+            const container = document.getElementById('calendar-days-container');
+            container.innerHTML = '';
+
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const firstDayIndex = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+
+            // Blank spacer cells for start of month
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'cal-day-cell';
+                emptyCell.style.opacity = '0.2';
+                container.appendChild(emptyCell);
             }
 
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    alert("Notifications enabled successfully! You will receive alerts for urgent announcements.");
-                    new Notification("Covington PD Portal", {
-                        body: "Notifications are now active for this device."
-                    });
-                } else {
-                    alert("Notification permission was denied. You can change this in your iPhone Safari settings.");
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
+                const dayCell = document.createElement('div');
+                dayCell.className = `cal-day-cell ${day === selectedCalendarDay ? 'active-day' : ''}`;
+                dayCell.onclick = () => selectCalendarDay(day);
+
+                let badgeHtml = '';
+                if (scheduleData[dayKey] && scheduleData[dayKey].length > 0) {
+                    const shiftCount = scheduleData[dayKey].length;
+                    badgeHtml = `<div class="cal-shift-badge shift-day">${shiftCount} SHIFT${shiftCount > 1 ? 'S' : ''}</div>`;
+                }
+
+                dayCell.innerHTML = `<strong>${day}</strong>${badgeHtml}`;
+                container.appendChild(dayCell);
+            }
+        }
+
+        function selectCalendarDay(day) {
+            selectedCalendarDay = day;
+            renderCalendar();
+
+            const now = new Date();
+            const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
+
+            document.getElementById('selected-date-label').innerText = `DAY ${day} SCHEDULE`;
+            document.getElementById('selected-date-tag').innerText = dayKey;
+
+            const listContainer = document.getElementById('selected-day-details-list');
+            const entries = scheduleData[dayKey] || [];
+
+            if (entries.length === 0) {
+                listContainer.innerHTML = '<em>No custom duty shifts posted for this date yet.</em>';
+            } else {
+                listContainer.innerHTML = entries.map(e => `
+                    <div style="background:var(--bg-color); padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid var(--border-color);">
+                        <strong style="color:var(--cyber-blue);">${e.officerName}</strong><br>
+                        <strong>Shift:</strong> ${e.type}<br>
+                        <strong>Assignment:</strong> ${e.zone || 'General Patrol'}
+                    </div>
+                `).join('');
+            }
+        }
+
+        function populateAdminUserDropdown() {
+            const select = document.getElementById('admin-shift-user');
+            select.innerHTML = '<option value="ALL">ALL OFFICERS (Full Squad)</option>';
+            users.forEach(u => {
+                if (u.status === 'approved') {
+                    select.innerHTML += `<option value="${u.badge}">${u.name} (#${u.badge})</option>`;
                 }
             });
         }
 
-        // ADMIN FEATURES
-        function renderAdminUserList() {
-            const container = document.getElementById('users-management-list');
-            container.innerHTML = '';
+        function saveShiftAssignment() {
+            const dateInput = document.getElementById('admin-shift-date').value;
+            const targetBadge = document.getElementById('admin-shift-user').value;
+            const shiftType = document.getElementById('admin-shift-type').value;
+            const zone = document.getElementById('admin-shift-zone').value.trim();
 
-            users.forEach((u, idx) => {
-                if (u.badge === currentUser.badge) return;
+            if (!dateInput) {
+                alert("Please select a date.");
+                return;
+            }
 
-                const div = document.createElement('div');
-                div.style.cssText = "padding:10px; background:var(--bg-color); border-radius:8px; margin-bottom:8px; font-size:12px;";
-                div.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <strong>${u.name} (#${u.badge})</strong>
-                        <span class="badge-status ${u.status === 'pending' ? 'status-pending' : 'status-approved'}">${u.status.toUpperCase()}</span>
-                    </div>
-                    <div style="display:flex; gap:6px; margin-top:8px;">
-                        ${u.status === 'pending' ? `<button class="btn-primary" style="padding:4px; font-size:11px;" onclick="approveUser(${idx})">Approve</button>` : ''}
-                        <button class="btn-secondary" style="padding:4px; font-size:11px;" onclick="toggleAdminPower(${idx})">
-                            ${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}
-                        </button>
-                    </div>
-                `;
-                container.appendChild(div);
+            // Convert date picker string (YYYY-MM-DD) to dayKey format
+            const [year, month, day] = dateInput.split('-');
+            const dayKey = `${parseInt(year)}-${parseInt(month)}-${parseInt(day)}`;
+
+            if (!scheduleData[dayKey]) scheduleData[dayKey] = [];
+
+            let targetName = "All Officers";
+            if (targetBadge !== "ALL") {
+                const found = users.find(u => u.badge === targetBadge);
+                if (found) targetName = found.name;
+            }
+
+            scheduleData[dayKey].push({
+                officerBadge: targetBadge,
+                officerName: targetName,
+                type: shiftType,
+                zone: zone || "General Patrol"
             });
+
+            localStorage.setItem('cpd_schedule', JSON.stringify(scheduleData));
+            alert("Shift assignment posted to calendar!");
+            renderCalendar();
+            selectCalendarDay(parseInt(day));
         }
 
-        function approveUser(index) {
-            users[index].status = 'approved';
-            saveUsers();
-            renderAdminUserList();
-            alert("Officer account approved.");
+        // CHAT & CHANNEL CREATION
+        function renderChatChannels() {
+            const bar = document.getElementById('chat-channels-bar');
+            bar.innerHTML = chatChannels.map(ch => `
+                <div class="channel-chip ${ch === activeChannel ? 'active' : ''}" onclick="switchChannel('${ch}')">
+                    # ${ch}
+                </div>
+            `).join('');
+            renderChat();
         }
 
-        function toggleAdminPower(index) {
-            users[index].isAdmin = !users[index].isAdmin;
-            saveUsers();
-            renderAdminUserList();
-            alert(`Updated admin status for ${users[index].name}.`);
+        function switchChannel(channelName) {
+            activeChannel = channelName;
+            renderChatChannels();
+        }
+
+        function createChatChannel() {
+            const name = document.getElementById('new-channel-name').value.trim();
+            if (!name) return;
+
+            if (chatChannels.includes(name)) {
+                alert("Channel name already exists.");
+                return;
+            }
+
+            chatChannels.push(name);
+            localStorage.setItem('cpd_chat_channels', JSON.stringify(chatChannels));
+            document.getElementById('new-channel-name').value = '';
+            switchChannel(name);
+            alert(`Channel #${name} created!`);
+        }
+
+        function renderChat() {
+            const box = document.getElementById('chat-box');
+            const msgs = chatMessages.filter(m => m.channel === activeChannel || (!m.channel && activeChannel === "General Squad"));
+            
+            if (msgs.length === 0) {
+                box.innerHTML = '<div style="color:var(--text-secondary);">No messages in this channel yet.</div>';
+            } else {
+                box.innerHTML = msgs.map(m => `
+                    <div style="margin-bottom:6px;">
+                        <strong style="color:var(--cyber-blue);">${m.author}:</strong> ${m.text}
+                    </div>
+                `).join('');
+            }
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-msg');
+            const text = input.value.trim();
+            if (!text || !currentUser) return;
+
+            chatMessages.push({
+                channel: activeChannel,
+                author: `${currentUser.rank} ${currentUser.name}`,
+                text
+            });
+
+            localStorage.setItem('cpd_chat_msgs', JSON.stringify(chatMessages));
+            renderChat();
+            input.value = '';
         }
 
         // ANNOUNCEMENTS
@@ -649,38 +970,65 @@
             document.getElementById('new-notice-card').style.display = 'none';
         }
 
-        // CHAT
-        function renderChat() {
-            const box = document.getElementById('chat-box');
-            box.innerHTML = chatMessages.map(m => `<div><strong>${m.author}:</strong> ${m.text}</div>`).join('');
-            box.scrollTop = box.scrollHeight;
+        // ADMIN USER MANAGEMENT
+        function renderAdminUserList() {
+            const container = document.getElementById('users-management-list');
+            container.innerHTML = '';
+
+            users.forEach((u, idx) => {
+                if (u.badge === currentUser.badge) return;
+
+                const div = document.createElement('div');
+                div.style.cssText = "padding:10px; background:var(--bg-color); border-radius:8px; margin-bottom:8px; font-size:12px;";
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <strong>${u.name} (#${u.badge})</strong>
+                        <span class="badge-status ${u.status === 'pending' ? 'status-pending' : 'status-approved'}">${u.status.toUpperCase()}</span>
+                    </div>
+                    <div style="color:var(--text-secondary); margin-bottom:6px;">Phone: ${u.phone || 'N/A'}</div>
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        ${u.status === 'pending' ? `<button class="btn-primary" style="padding:4px; font-size:11px;" onclick="approveUser(${idx})">Approve</button>` : ''}
+                        <button class="btn-secondary" style="padding:4px; font-size:11px;" onclick="toggleAdminPower(${idx})">
+                            ${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
         }
 
-        function sendMessage() {
-            const input = document.getElementById('chat-msg');
-            const text = input.value.trim();
-            if (!text || !currentUser) return;
-
-            chatMessages.push({ author: currentUser.name, text });
-            localStorage.setItem('cpd_chat', JSON.stringify(chatMessages));
-            renderChat();
-            input.value = '';
+        function approveUser(index) {
+            users[index].status = 'approved';
+            saveUsers();
+            renderAdminUserList();
+            populateAdminUserDropdown();
+            alert("Officer account approved.");
         }
 
-        // SCHEDULE
-        function renderSchedule() {
-            const view = document.getElementById('schedule-calendar-view');
-            view.innerHTML = `
-                • Mon: 06:00 - 18:00 (On Duty)<br>
-                • Tue: 06:00 - 18:00 (On Duty)<br>
-                • Wed: OFF<br>
-                • Thu: OFF<br>
-                • Fri: 18:00 - 06:00 (Night Shift)
-            `;
+        function toggleAdminPower(index) {
+            users[index].isAdmin = !users[index].isAdmin;
+            saveUsers();
+            renderAdminUserList();
+            alert(`Updated admin status for ${users[index].name}.`);
         }
 
-        function autoFillSchedule() {
-            alert("Auto-fill engine executed: Monthly 4-on / 2-off rotation applied across department roster!");
+        // NOTIFICATIONS
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("This browser does not support desktop/mobile notifications.");
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    alert("Notifications enabled successfully!");
+                    new Notification("Covington PD Portal", {
+                        body: "Notifications are active."
+                    });
+                } else {
+                    alert("Notification permission denied in browser settings.");
+                }
+            });
         }
 
         // TAB SWITCHING
