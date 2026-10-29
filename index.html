@@ -153,6 +153,7 @@
             color: #fff;
             border: none;
             font-weight: bold;
+            cursor: pointer;
         }
 
         /* Navigation */
@@ -565,7 +566,11 @@
             <!-- ADMIN ONLY USER MANAGEMENT & BALANCE ADJUSTMENTS -->
             <div class="card" id="admin-approval-panel" style="display: none;">
                 <div class="card-title" style="margin-bottom: 12px; color: #ffd700;">⚙️ USER MANAGEMENT & TIME-OFF BALANCES</div>
-                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Approve requests, assign admins, or edit officer PTO balances.</p>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;">Approve requests, assign admins, or edit officer PTO balances.</p>
+                
+                <!-- NEW DATA RESET BUTTON -->
+                <button class="btn-danger" style="margin-bottom: 15px; font-size: 11px; padding: 10px;" onclick="resetSystemData()">🔄 RESET SYSTEM DATA & CLEAR CACHE</button>
+                
                 <div id="users-management-list"></div>
             </div>
 
@@ -633,6 +638,15 @@
             renderChatChannels();
             renderCalendar();
         };
+
+        // SYSTEM RESET FUNCTION
+        function resetSystemData() {
+            if (confirm("This will clear out cached user profile data and restore default admin settings. Continue?")) {
+                localStorage.clear();
+                alert("System data reset successfully! Re-logging in now.");
+                location.reload();
+            }
+        }
 
         // AUTHENTICATION
         function handleLogin() {
