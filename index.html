@@ -236,9 +236,10 @@
             justify-content: flex-start;
         }
 
-        .cal-day-cell.active-day {
+        .cal-day-cell.selected-day {
             border-color: var(--cyber-blue);
-            background: rgba(0, 217, 255, 0.1);
+            background: rgba(0, 217, 255, 0.25) !important;
+            box-shadow: 0 0 8px rgba(0, 217, 255, 0.5);
         }
 
         .cal-shift-badge {
@@ -254,8 +255,6 @@
         }
 
         .shift-day { background: rgba(0, 217, 255, 0.2); color: var(--cyber-blue); border: 1px solid var(--cyber-blue); }
-        .shift-night { background: rgba(138, 43, 226, 0.3); color: #c8a2c8; border: 1px solid #c8a2c8; }
-        .shift-off { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
 
         /* Chat Rooms Selector */
         .channel-bar {
@@ -288,6 +287,12 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
         }
 
         .metric-card {
@@ -424,23 +429,27 @@
 
         <!-- 📅 SCHEDULE & CALENDAR TAB -->
         <section id="tab-schedule" class="tab-content">
-            <!-- ADMIN CALENDAR CONTROL PORTAL -->
+            <!-- ADMIN MULTI-DAY SHIFT BUILDER -->
             <div class="card" id="admin-schedule-tools" style="display: none;">
-                <div class="card-title" style="margin-bottom: 10px; color: #ffd700;">⚙️ SCHEDULE DASHBOARD & EDITOR</div>
-                <label>Select Date to Post/Update Shift</label>
-                <input type="date" id="admin-shift-date">
-                <label>Assign Officer / Squad</label>
+                <div class="card-title" style="margin-bottom: 10px; color: #ffd700;">⚙️ SHIFT & TRAINING BUILDER</div>
+                
+                <label>1. Select Officer / Group</label>
                 <select id="admin-shift-user"></select>
-                <label>Shift Type</label>
+
+                <label>2. Select Shift Type</label>
                 <select id="admin-shift-type">
-                    <option value="DAY (06:00 - 18:00)">Day Shift (06:00 - 18:00)</option>
-                    <option value="NIGHT (18:00 - 06:00)">Night Shift (18:00 - 06:00)</option>
+                    <option value="Day Shift (07:00 - 15:00)">Day Shift (07:00 - 15:00)</option>
+                    <option value="Mid Shift (15:00 - 23:00)">Mid Shift (15:00 - 23:00)</option>
+                    <option value="Night Shift (23:00 - 07:00)">Night Shift (23:00 - 07:00)</option>
+                    <option value="Training (Department-Wide)">Training (Mandatory Department)</option>
                     <option value="OFF">OFF / Rest Day</option>
-                    <option value="TRAINING">Special Training</option>
                 </select>
-                <label>Patrol Zone / Assignment Details</label>
-                <input type="text" id="admin-shift-zone" placeholder="e.g. Zone 2 / Traffic">
-                <button class="btn-primary" onclick="saveShiftAssignment()">POST TO CALENDAR</button>
+
+                <label>3. Click Days on Calendar Below to Schedule</label>
+                <p style="font-size: 11px; color: var(--cyber-blue); margin-bottom: 8px;">Selected days highlight in cyan.</p>
+
+                <button class="btn-primary" onclick="saveSelectedShifts()">SAVE SELECTED SHIFTS</button>
+                <button class="btn-secondary" onclick="clearSelectedDays()" style="margin-bottom:0;">Clear Selections</button>
             </div>
 
             <!-- MONTHLY CALENDAR VIEW -->
@@ -476,7 +485,6 @@
 
         <!-- 💬 MESSAGING & CHAT ROOMS TAB -->
         <section id="tab-messages" class="tab-content">
-            <!-- ADMIN CREATE CHAT ROOM TOOLS -->
             <div class="card" id="admin-chat-tools" style="display: none;">
                 <div class="card-title" style="margin-bottom: 10px; color: #ffd700;">⚙️ CREATE NEW GROUP CHAT ROOM</div>
                 <div style="display: flex; gap: 8px;">
@@ -552,10 +560,10 @@
                 <button class="btn-primary" onclick="requestNotificationPermission()">ENABLE NOTIFICATIONS</button>
             </div>
 
-            <!-- ADMIN ONLY USER APPROVAL PORTAL -->
+            <!-- ADMIN ONLY USER MANAGEMENT & BALANCE ADJUSTMENTS -->
             <div class="card" id="admin-approval-panel" style="display: none;">
-                <div class="card-title" style="margin-bottom: 12px; color: #ffd700;">⚙️ USER MANAGEMENT PORTAL</div>
-                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Approve registration requests or adjust privileges for officers.</p>
+                <div class="card-title" style="margin-bottom: 12px; color: #ffd700;">⚙️ USER MANAGEMENT & TIME-OFF BALANCES</div>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Approve requests, assign admins, or edit officer PTO balances.</p>
                 <div id="users-management-list"></div>
             </div>
 
@@ -615,7 +623,7 @@
         let scheduleData = JSON.parse(localStorage.getItem('cpd_schedule')) || {};
 
         let currentUser = null;
-        let selectedCalendarDay = new Date().getDate();
+        let selectedCalendarDays = new Set();
 
         // INITIALIZATION
         window.onload = function() {
@@ -680,7 +688,6 @@
         function setupUserSession() {
             document.getElementById('header-user-info').innerText = `${currentUser.rank.toUpperCase()} • #${currentUser.badge}`;
             
-            // Populate User Profile View & Edit Inputs
             renderProfileCard();
 
             document.getElementById('edit-user-name').value = currentUser.name;
@@ -688,12 +695,10 @@
             document.getElementById('edit-user-emergency').value = currentUser.emergency || '';
             document.getElementById('edit-user-pass').value = currentUser.pass;
 
-            // Balances
             document.getElementById('bal-vacation').innerText = currentUser.vacation;
             document.getElementById('bal-personal').innerText = currentUser.personal;
             document.getElementById('bal-comp').innerText = currentUser.comp;
 
-            // Admin Dashboard Access Controls
             if (currentUser.isAdmin) {
                 document.getElementById('admin-notice-tools').style.display = 'block';
                 document.getElementById('admin-schedule-tools').style.display = 'block';
@@ -709,7 +714,6 @@
             }
 
             renderCalendar();
-            selectCalendarDay(new Date().getDate());
         }
 
         function renderProfileCard() {
@@ -742,7 +746,6 @@
             currentUser.emergency = newEmergency;
             currentUser.pass = newPass;
 
-            // Save back into users array
             const idx = users.findIndex(u => u.badge === currentUser.badge);
             if (idx !== -1) users[idx] = currentUser;
 
@@ -773,7 +776,6 @@
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             const firstDayIndex = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
 
-            // Blank spacer cells for start of month
             for (let i = 0; i < firstDayIndex; i++) {
                 const emptyCell = document.createElement('div');
                 emptyCell.className = 'cal-day-cell';
@@ -784,8 +786,8 @@
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
                 const dayCell = document.createElement('div');
-                dayCell.className = `cal-day-cell ${day === selectedCalendarDay ? 'active-day' : ''}`;
-                dayCell.onclick = () => selectCalendarDay(day);
+                dayCell.className = `cal-day-cell ${selectedCalendarDays.has(day) ? 'selected-day' : ''}`;
+                dayCell.onclick = () => toggleCalendarDaySelection(day);
 
                 let badgeHtml = '';
                 if (scheduleData[dayKey] && scheduleData[dayKey].length > 0) {
@@ -798,10 +800,22 @@
             }
         }
 
-        function selectCalendarDay(day) {
-            selectedCalendarDay = day;
+        function toggleCalendarDaySelection(day) {
+            if (selectedCalendarDays.has(day)) {
+                selectedCalendarDays.delete(day);
+            } else {
+                selectedCalendarDays.add(day);
+            }
             renderCalendar();
+            showDayDetails(day);
+        }
 
+        function clearSelectedDays() {
+            selectedCalendarDays.clear();
+            renderCalendar();
+        }
+
+        function showDayDetails(day) {
             const now = new Date();
             const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
 
@@ -812,13 +826,12 @@
             const entries = scheduleData[dayKey] || [];
 
             if (entries.length === 0) {
-                listContainer.innerHTML = '<em>No custom duty shifts posted for this date yet.</em>';
+                listContainer.innerHTML = '<em>No custom shifts assigned for this day.</em>';
             } else {
                 listContainer.innerHTML = entries.map(e => `
                     <div style="background:var(--bg-color); padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid var(--border-color);">
                         <strong style="color:var(--cyber-blue);">${e.officerName}</strong><br>
-                        <strong>Shift:</strong> ${e.type}<br>
-                        <strong>Assignment:</strong> ${e.zone || 'General Patrol'}
+                        <strong>Shift:</strong> ${e.type}
                     </div>
                 `).join('');
             }
@@ -826,7 +839,7 @@
 
         function populateAdminUserDropdown() {
             const select = document.getElementById('admin-shift-user');
-            select.innerHTML = '<option value="ALL">ALL OFFICERS (Full Squad)</option>';
+            select.innerHTML = '<option value="ALL">ALL OFFICERS (Full Squad Training)</option>';
             users.forEach(u => {
                 if (u.status === 'approved') {
                     select.innerHTML += `<option value="${u.badge}">${u.name} (#${u.badge})</option>`;
@@ -834,40 +847,46 @@
             });
         }
 
-        function saveShiftAssignment() {
-            const dateInput = document.getElementById('admin-shift-date').value;
-            const targetBadge = document.getElementById('admin-shift-user').value;
-            const shiftType = document.getElementById('admin-shift-type').value;
-            const zone = document.getElementById('admin-shift-zone').value.trim();
-
-            if (!dateInput) {
-                alert("Please select a date.");
+        function saveSelectedShifts() {
+            if (selectedCalendarDays.size === 0) {
+                alert("Please click on one or more days on the calendar to select them before saving.");
                 return;
             }
 
-            // Convert date picker string (YYYY-MM-DD) to dayKey format
-            const [year, month, day] = dateInput.split('-');
-            const dayKey = `${parseInt(year)}-${parseInt(month)}-${parseInt(day)}`;
+            const targetBadge = document.getElementById('admin-shift-user').value;
+            const shiftType = document.getElementById('admin-shift-type').value;
+            const now = new Date();
 
-            if (!scheduleData[dayKey]) scheduleData[dayKey] = [];
-
-            let targetName = "All Officers";
+            let targetName = "ALL OFFICERS";
             if (targetBadge !== "ALL") {
                 const found = users.find(u => u.badge === targetBadge);
                 if (found) targetName = found.name;
             }
 
-            scheduleData[dayKey].push({
-                officerBadge: targetBadge,
-                officerName: targetName,
-                type: shiftType,
-                zone: zone || "General Patrol"
+            selectedCalendarDays.forEach(day => {
+                const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
+                if (!scheduleData[dayKey]) scheduleData[dayKey] = [];
+
+                if (targetBadge === "ALL") {
+                    // Training or group shift for everyone
+                    scheduleData[dayKey].push({
+                        officerBadge: "ALL",
+                        officerName: "DEPARTMENT-WIDE",
+                        type: shiftType
+                    });
+                } else {
+                    scheduleData[dayKey].push({
+                        officerBadge: targetBadge,
+                        officerName: targetName,
+                        type: shiftType
+                    });
+                }
             });
 
             localStorage.setItem('cpd_schedule', JSON.stringify(scheduleData));
-            alert("Shift assignment posted to calendar!");
+            alert(`Shifts saved for ${selectedCalendarDays.size} day(s)!`);
+            selectedCalendarDays.clear();
             renderCalendar();
-            selectCalendarDay(parseInt(day));
         }
 
         // CHAT & CHANNEL CREATION
@@ -970,7 +989,7 @@
             document.getElementById('new-notice-card').style.display = 'none';
         }
 
-        // ADMIN USER MANAGEMENT
+        // ADMIN USER MANAGEMENT & PTO EDITOR
         function renderAdminUserList() {
             const container = document.getElementById('users-management-list');
             container.innerHTML = '';
@@ -979,22 +998,55 @@
                 if (u.badge === currentUser.badge) return;
 
                 const div = document.createElement('div');
-                div.style.cssText = "padding:10px; background:var(--bg-color); border-radius:8px; margin-bottom:8px; font-size:12px;";
+                div.style.cssText = "padding:12px; background:var(--bg-color); border-radius:8px; margin-bottom:12px; border:1px solid var(--border-color); font-size:12px;";
                 div.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                         <strong>${u.name} (#${u.badge})</strong>
                         <span class="badge-status ${u.status === 'pending' ? 'status-pending' : 'status-approved'}">${u.status.toUpperCase()}</span>
                     </div>
-                    <div style="color:var(--text-secondary); margin-bottom:6px;">Phone: ${u.phone || 'N/A'}</div>
-                    <div style="display:flex; gap:6px; margin-top:8px;">
-                        ${u.status === 'pending' ? `<button class="btn-primary" style="padding:4px; font-size:11px;" onclick="approveUser(${idx})">Approve</button>` : ''}
-                        <button class="btn-secondary" style="padding:4px; font-size:11px;" onclick="toggleAdminPower(${idx})">
+
+                    <!-- PTO Balance Controls -->
+                    <div style="background:rgba(18,26,38,0.8); padding:8px; border-radius:6px; margin-bottom:10px;">
+                        <div style="font-size:10px; color:var(--cyber-blue); margin-bottom:6px; font-weight:bold;">MANAGE PTO BALANCES</div>
+                        <div class="grid-3">
+                            <div>
+                                <label style="font-size:9px;">Vacation</label>
+                                <input type="number" id="vac-${idx}" value="${u.vacation}" style="padding:4px; margin-bottom:0;">
+                            </div>
+                            <div>
+                                <label style="font-size:9px;">Personal</label>
+                                <input type="number" id="per-${idx}" value="${u.personal}" style="padding:4px; margin-bottom:0;">
+                            </div>
+                            <div>
+                                <label style="font-size:9px;">Comp Hrs</label>
+                                <input type="number" id="cmp-${idx}" value="${u.comp}" style="padding:4px; margin-bottom:0;">
+                            </div>
+                        </div>
+                        <button class="btn-primary" style="padding:4px; margin-top:8px; margin-bottom:0; font-size:10px;" onclick="updateUserBalances(${idx})">UPDATE BALANCES</button>
+                    </div>
+
+                    <div style="display:flex; gap:6px;">
+                        ${u.status === 'pending' ? `<button class="btn-primary" style="padding:6px; font-size:11px;" onclick="approveUser(${idx})">Approve Officer</button>` : ''}
+                        <button class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower(${idx})">
                             ${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}
                         </button>
                     </div>
                 `;
                 container.appendChild(div);
             });
+        }
+
+        function updateUserBalances(idx) {
+            const vac = parseInt(document.getElementById(`vac-${idx}`).value) || 0;
+            const per = parseInt(document.getElementById(`per-${idx}`).value) || 0;
+            const cmp = parseInt(document.getElementById(`cmp-${idx}`).value) || 0;
+
+            users[idx].vacation = vac;
+            users[idx].personal = per;
+            users[idx].comp = cmp;
+
+            saveUsers();
+            alert(`Updated time-off balances for ${users[idx].name}.`);
         }
 
         function approveUser(index) {
