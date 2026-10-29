@@ -223,14 +223,14 @@
 
         .cal-day-label {
             font-size: 10px;
-            color: var(--cyber-blue);
+            color: var(--admin-gold);
             font-family: monospace;
             padding-bottom: 4px;
         }
 
         .cal-day-cell {
             background: rgba(18, 26, 38, 0.6);
-            border: 1px solid rgba(0, 217, 255, 0.15);
+            border: 1px solid rgba(255, 215, 0, 0.2);
             border-radius: 6px;
             padding: 6px 2px;
             min-height: 60px;
@@ -243,9 +243,9 @@
         }
 
         .cal-day-cell.selected-day {
-            border-color: var(--cyber-blue);
-            background: rgba(0, 217, 255, 0.25) !important;
-            box-shadow: 0 0 8px rgba(0, 217, 255, 0.5);
+            border-color: var(--admin-gold);
+            background: rgba(255, 215, 0, 0.25) !important;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
         }
 
         .cal-shift-badge {
@@ -258,9 +258,9 @@
             overflow: hidden;
             text-overflow: ellipsis;
             width: 100%;
-            background: rgba(0, 217, 255, 0.2);
-            color: var(--cyber-blue);
-            border: 1px solid var(--cyber-blue);
+            background: rgba(255, 215, 0, 0.2);
+            color: var(--admin-gold);
+            border: 1px solid var(--admin-gold);
         }
 
         /* Chat Rooms Selector */
@@ -434,7 +434,7 @@
             <div id="notices-list"></div>
         </section>
 
-        <!-- 📅 SCHEDULE & CALENDAR TAB -->
+        <!-- 📅 SCHEDULE & CALENDAR TAB (Officer View) -->
         <section id="tab-schedule" class="tab-content">
             <div class="card">
                 <div class="calendar-header">
@@ -501,7 +501,7 @@
             </div>
         </section>
 
-        <!-- ⚙️ DEDICATED ADMIN DASHBOARD TAB -->
+        <!-- ⚙️ DEDICATED ADMIN DASHBOARD TAB (Includes Integrated Calendar & Builder) -->
         <section id="tab-admin" class="tab-content">
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
@@ -509,9 +509,9 @@
                 <button class="btn-danger" style="font-size: 11px; padding: 10px;" onclick="resetSystemData()">🔄 RESET SYSTEM DATA & CLEAR CACHE</button>
             </div>
 
-            <!-- SHIFT & TRAINING BUILDER -->
-            <div class="card">
-                <div class="card-title" style="margin-bottom: 10px; color: var(--admin-gold);">📅 SHIFT & TRAINING BUILDER</div>
+            <!-- INTEGRATED SHIFT & TRAINING BUILDER WITH CALENDAR -->
+            <div class="card" style="border-color: var(--admin-gold);">
+                <div class="card-title" style="margin-bottom: 10px; color: var(--admin-gold);">📅 SHIFT & TRAINING BUILDER (ADMIN CALENDAR)</div>
                 <label>1. Select Officer / Group</label>
                 <select id="admin-shift-user"></select>
 
@@ -525,9 +525,28 @@
                     <option value="OFF">OFF / Rest Day</option>
                 </select>
 
-                <label>3. Click Days on the Calendar Tab to Schedule</label>
-                <button class="btn-primary" onclick="saveSelectedShifts()">SAVE SELECTED SHIFTS</button>
-                <button class="btn-secondary" onclick="clearSelectedDays()" style="margin-bottom:0;">Clear Calendar Selections</button>
+                <label>3. Click Days on the Calendar Below to Schedule</label>
+                <p style="font-size: 11px; color: var(--admin-gold); margin-bottom: 8px;">Selected days highlight in gold.</p>
+
+                <!-- ADMIN CALENDAR GRID EMBEDDED DIRECTLY HERE -->
+                <div style="background:var(--bg-color); padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.3); margin-bottom: 12px;">
+                    <div class="calendar-header">
+                        <span style="font-size:12px; color:var(--admin-gold); font-family:monospace;" id="admin-calendar-month-title">MONTH</span>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="cal-day-label">S</div>
+                        <div class="cal-day-label">M</div>
+                        <div class="cal-day-label">T</div>
+                        <div class="cal-day-label">W</div>
+                        <div class="cal-day-label">T</div>
+                        <div class="cal-day-label">F</div>
+                        <div class="cal-day-label">S</div>
+                    </div>
+                    <div class="calendar-grid" id="admin-calendar-days-container" style="margin-top: 6px;"></div>
+                </div>
+
+                <button class="btn-primary" style="background:var(--admin-gold); color:#000;" onclick="saveSelectedShifts()">SAVE SELECTED SHIFTS</button>
+                <button class="btn-secondary" style="border-color:var(--admin-gold); color:var(--admin-gold);" onclick="clearSelectedDays()">Clear Calendar Selections</button>
             </div>
 
             <!-- CREATE GROUP CHAT ROOM -->
@@ -602,7 +621,6 @@
     </nav>
 
     <script>
-        // DEFAULT INITIAL USER ACCOUNTS
         const DEFAULT_USERS = [
             {
                 badge: "23-22",
@@ -646,6 +664,7 @@
             renderNotices();
             renderChatChannels();
             renderCalendar();
+            renderAdminCalendar();
         };
 
         function resetSystemData() {
@@ -733,6 +752,7 @@
             }
 
             renderCalendar();
+            renderAdminCalendar();
         }
 
         function renderProfileCard() {
@@ -783,13 +803,53 @@
             document.getElementById('signup-box').style.display = showSignUp ? 'block' : 'none';
         }
 
-        // CALENDAR
+        // CALENDAR (Officer View)
         function renderCalendar() {
             const now = new Date();
             const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
             document.getElementById('calendar-month-title').innerText = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
             const container = document.getElementById('calendar-days-container');
+            container.innerHTML = '';
+
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const firstDayIndex = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'cal-day-cell';
+                emptyCell.style.opacity = '0.2';
+                container.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${day}`;
+                const dayCell = document.createElement('div');
+                dayCell.className = 'cal-day-cell';
+                dayCell.onclick = () => showDayDetails(day);
+
+                let badgesHtml = '';
+                if (scheduleData[dayKey] && scheduleData[dayKey].length > 0) {
+                    scheduleData[dayKey].forEach(e => {
+                        const badgeLabel = e.officerBadge === "ALL" ? "ALL" : `#${e.officerBadge}`;
+                        badgesHtml += `<div class="cal-shift-badge">${badgeLabel}</div>`;
+                    });
+                }
+
+                dayCell.innerHTML = `<strong>${day}</strong>${badgesHtml}`;
+                container.appendChild(dayCell);
+            }
+        }
+
+        // ADMIN CALENDAR (Integrated inside Admin Builder)
+        function renderAdminCalendar() {
+            const now = new Date();
+            const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+            const titleEl = document.getElementById('admin-calendar-month-title');
+            if (titleEl) titleEl.innerText = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+
+            const container = document.getElementById('admin-calendar-days-container');
+            if (!container) return;
             container.innerHTML = '';
 
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -827,13 +887,12 @@
             } else {
                 selectedCalendarDays.add(day);
             }
-            renderCalendar();
-            showDayDetails(day);
+            renderAdminCalendar();
         }
 
         function clearSelectedDays() {
             selectedCalendarDays.clear();
-            renderCalendar();
+            renderAdminCalendar();
         }
 
         function showDayDetails(day) {
@@ -847,7 +906,7 @@
             const entries = scheduleData[dayKey] || [];
 
             if (entries.length === 0) {
-                listContainer.innerHTML = '<em>No custom shifts assigned for this day. Click dates to select them for scheduling.</em>';
+                listContainer.innerHTML = '<em>No custom shifts assigned for this day.</em>';
             } else {
                 listContainer.innerHTML = entries.map(e => `
                     <div style="background:var(--bg-color); padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid var(--border-color);">
@@ -871,7 +930,7 @@
 
         function saveSelectedShifts() {
             if (selectedCalendarDays.size === 0) {
-                alert("Please click on one or more days on the calendar to select them before saving.");
+                alert("Please click on one or more days on the admin calendar to select them before saving.");
                 return;
             }
 
@@ -899,6 +958,7 @@
             localStorage.setItem('cpd_schedule', JSON.stringify(scheduleData));
             alert(`Shifts saved for ${selectedCalendarDays.size} day(s)!`);
             selectedCalendarDays.clear();
+            renderAdminCalendar();
             renderCalendar();
         }
 
@@ -1002,7 +1062,7 @@
             document.getElementById('new-notice-card').style.display = 'none';
         }
 
-        // ADMIN USER MANAGEMENT & FIXED PTO EDITOR
+        // ADMIN USER MANAGEMENT & PTO EDITOR
         function renderAdminUserList() {
             const container = document.getElementById('users-management-list');
             if (!container) return;
@@ -1063,7 +1123,6 @@
 
             saveUsers();
             
-            // Sync if editing current logged-in user
             if (currentUser && currentUser.badge === badgeId) {
                 currentUser.vacation = u.vacation;
                 currentUser.personal = u.personal;
