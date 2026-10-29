@@ -796,7 +796,7 @@
             }
 
             if (users.find(u => u.badge === badge)) {
-                alert("An account or unit number with this badge/unit ID already exists. If an officer entered the wrong information, an administrator can delete their account from the Admin panel to free up this number.");
+                alert("An account or unit number with this badge/unit ID already exists.");
                 return;
             }
 
@@ -1268,11 +1268,20 @@
                         <span class="badge-status ${u.status === 'pending' ? 'status-pending' : 'status-approved'}">${u.status.toUpperCase()}</span>
                     </div>
 
-                    <!-- Edit Officer Details & Ranks -->
+                    <!-- Edit Officer Details, Ranks & Unit Numbers -->
                     <div style="background:rgba(18,26,38,0.8); padding:8px; border-radius:6px; margin-bottom:10px;">
-                        <div style="font-size:10px; color:var(--admin-gold); margin-bottom:6px; font-weight:bold;">EDIT OFFICER DETAILS & RANK</div>
-                        <label style="font-size:9px;">Full Name</label>
-                        <input type="text" id="name-${u.badge}" value="${u.name}" style="padding:4px; margin-bottom:6px;">
+                        <div style="font-size:10px; color:var(--admin-gold); margin-bottom:6px; font-weight:bold;">EDIT OFFICER DETAILS & UNIT #</div>
+                        
+                        <div class="grid-2">
+                            <div>
+                                <label style="font-size:9px;">Full Name</label>
+                                <input type="text" id="name-${u.badge}" value="${u.name}" style="padding:4px; margin-bottom:6px;">
+                            </div>
+                            <div>
+                                <label style="font-size:9px;">Badge / Unit #</label>
+                                <input type="text" id="badge-${u.badge}" value="${u.badge}" style="padding:4px; margin-bottom:6px;" ${isMainAdmin ? 'disabled' : ''}>
+                            </div>
+                        </div>
                         
                         <div class="grid-2">
                             <div>
@@ -1339,30 +1348,45 @@
             alert(`Account #${badgeId} has been deleted and the unit number is now free to reuse.`);
         }
 
-        function updateUserDetails(badgeId) {
-            const u = users.find(x => x.badge === badgeId);
+        function updateUserDetails(oldBadgeId) {
+            const u = users.find(x => x.badge === oldBadgeId);
             if (!u) return;
 
-            const nameInput = document.getElementById(`name-${badgeId}`);
-            const rankInput = document.getElementById(`rank-${badgeId}`);
-            const phoneInput = document.getElementById(`phone-${badgeId}`);
-            const emergInput = document.getElementById(`emerg-${badgeId}`);
+            const nameInput = document.getElementById(`name-${oldBadgeId}`);
+            const badgeInput = document.getElementById(`badge-${oldBadgeId}`);
+            const rankInput = document.getElementById(`rank-${oldBadgeId}`);
+            const phoneInput = document.getElementById(`phone-${oldBadgeId}`);
+            const emergInput = document.getElementById(`emerg-${oldBadgeId}`);
 
             if (nameInput) u.name = nameInput.value.trim();
             if (rankInput) u.rank = rankInput.value;
             if (phoneInput) u.phone = phoneInput.value.trim();
             if (emergInput) u.emergency = emergInput.value.trim();
 
+            if (badgeInput && oldBadgeId !== "23-22") {
+                const newBadgeId = badgeInput.value.trim();
+                if (!newBadgeId) {
+                    alert("Badge / Unit number cannot be empty.");
+                    return;
+                }
+                if (newBadgeId !== oldBadgeId && users.find(x => x.badge === newBadgeId)) {
+                    alert("Another account is already using unit number " + newBadgeId + ".");
+                    return;
+                }
+                u.badge = newBadgeId;
+            }
+
             saveUsers();
             renderAdminUserList();
             populateAdminUserDropdown();
 
-            if (currentUser && currentUser.badge === badgeId) {
+            if (currentUser && currentUser.badge === oldBadgeId) {
                 currentUser = u;
+                localStorage.setItem('cpd_active_badge', currentUser.badge);
                 setupUserSession();
             }
 
-            alert(`Updated profile details for Officer #${badgeId}!`);
+            alert(`Updated profile details for Officer!`);
         }
 
         function updateUserBalances(badgeId) {
