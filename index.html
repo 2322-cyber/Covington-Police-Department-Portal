@@ -541,6 +541,12 @@
                 <button class="btn-danger" style="font-size: 11px; padding: 10px;" onclick="resetSystemData()">🔄 RESET SYSTEM DATA & CLEAR CACHE</button>
             </div>
 
+            <!-- PENDING ACCOUNT APPROVALS ALERT -->
+            <div class="card" id="pending-approvals-card" style="border-color: var(--warning); display: none;">
+                <div class="card-title" style="color: var(--warning); margin-bottom: 10px;">🚨 PENDING ACCOUNT APPROVALS</div>
+                <div id="pending-users-list"></div>
+            </div>
+
             <!-- SHIFT & TRAINING BUILDER -->
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 10px; color: var(--admin-gold);">📅 SHIFT & TRAINING BUILDER (ADMIN CALENDAR)</div>
@@ -715,9 +721,12 @@
 
         let currentUser = null;
         let selectedCalendarDays = new Set();
-        let currentCalendarDate = new Date(); // Tracks currently viewed month/year
+        let currentCalendarDate = new Date();
 
         window.onload = function() {
+            // Re-sync users from storage
+            users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
+
             renderNotices();
             renderChatChannels();
             renderCalendar();
@@ -747,6 +756,7 @@
         }
 
         function handleLogin() {
+            users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
             const badge = document.getElementById('login-badge').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
 
@@ -773,6 +783,8 @@
         }
 
         function handleRegister() {
+            users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
+
             const name = document.getElementById('reg-name').value.trim();
             const badge = document.getElementById('reg-badge').value.trim();
             const rank = document.getElementById('reg-rank').value;
@@ -905,7 +917,7 @@
             document.getElementById('signup-box').style.display = showSignUp ? 'block' : 'none';
         }
 
-        // MONTH NAVIGATION (Prev/Next Month)
+        // MONTH NAVIGATION
         function changeMonth(direction) {
             currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
             selectedCalendarDays.clear();
@@ -1209,9 +1221,36 @@
 
         // ADMIN USER MANAGEMENT, RANKS & PTO EDITOR
         function renderAdminUserList() {
+            users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
+
             const container = document.getElementById('users-management-list');
+            const pendingCard = document.getElementById('pending-approvals-card');
+            const pendingList = document.getElementById('pending-users-list');
+
             if (!container) return;
             container.innerHTML = '';
+            if (pendingList) pendingList.innerHTML = '';
+
+            const pendingUsers = users.filter(u => u.status === 'pending');
+
+            // Render Pending Alert Box
+            if (pendingUsers.length > 0 && pendingCard && pendingList) {
+                pendingCard.style.display = 'block';
+                pendingUsers.forEach(u => {
+                    const idx = users.findIndex(x => x.badge === u.badge);
+                    pendingList.innerHTML += `
+                        <div style="background:var(--bg-color); padding:10px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <strong style="color:var(--text-primary);">${u.name} (#${u.badge})</strong><br>
+                                <span style="font-size:10px; color:var(--text-secondary);">${u.rank} • ${u.phone}</span>
+                            </div>
+                            <button class="btn-primary" style="padding:6px 12px; margin-bottom:0; font-size:11px; width:auto;" onclick="approveUser(${idx})">APPROVE OFFICER</button>
+                        </div>
+                    `;
+                });
+            } else if (pendingCard) {
+                pendingCard.style.display = 'none';
+            }
 
             const ranksList = ["Officer", "Corporal", "Sergeant", "Lieutenant", "Captain", "Assistant Chief", "Chief of Police"];
 
@@ -1370,7 +1409,7 @@
             saveUsers();
             renderAdminUserList();
             populateAdminUserDropdown();
-            alert("Officer account approved.");
+            alert(`Officer #${users[index].badge} (${users[index].name}) has been approved!`);
         }
 
         function toggleAdminPower(index) {
@@ -1408,6 +1447,11 @@
 
             document.getElementById('tab-' + tabId).classList.add('active');
             el.classList.add('active');
+
+            // Re-render admin lists when switching to admin tab
+            if (tabId === 'admin') {
+                renderAdminUserList();
+            }
         }
 
         function saveUsers() {
