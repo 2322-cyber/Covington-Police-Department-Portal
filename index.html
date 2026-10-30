@@ -8,8 +8,9 @@
     <meta name="apple-mobile-web-app-title" content="Covington PD">
     <title>Covington Police Department</title>
     
-    <!-- Supabase JS CDN Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Firebase SDK Compat Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <style>
         :root {
@@ -458,7 +459,7 @@
             <div style="font-size: 60px; margin-bottom: 10px; text-shadow: 0 0 15px var(--cyber-blue);">🛡️</div>
             <h1 style="font-family: monospace; color: var(--cyber-blue); font-size: 20px;">COVINGTON POLICE DEPARTMENT</h1>
             <p style="color: var(--text-secondary); font-size: 13px; letter-spacing: 2px; font-family: monospace; margin-top: 6px;">Department Portal</p>
-            <p id="cloud-status" style="font-size: 10px; color: var(--success); margin-top: 4px; font-family: monospace;">☁️ REALTIME CONNECTED</p>
+            <p id="cloud-status" style="font-size: 10px; color: var(--success); margin-top: 4px; font-family: monospace;">🔥 FIREBASE REALTIME CONNECTED</p>
         </div>
 
         <div class="card" id="login-box">
@@ -594,7 +595,7 @@
         <section id="tab-admin" class="tab-content">
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
-                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls synced in real-time via Supabase.</p>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls synced in real-time via Firebase Realtime Database.</p>
                 <button type="button" class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px;" onclick="syncFromCloudSilent()">🔄 REFRESH FROM CLOUD</button>
             </div>
 
@@ -751,22 +752,24 @@
 
     <script>
         // ==========================================
-        // FRESH SUPABASE CONFIGURATION
+        // FIREBASE CONFIGURATION
         // ==========================================
-        const SUPABASE_URL = "https://fjhfmtsssqmjgmsmawp.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_uY3genS-6ZJj8KkKv5DVSw_J1HmMAdw";
+        const firebaseConfig = {
+            apiKey: "AIzaSyCgDQc7WQQZo78o0CAwdJGweaKP6x02BaM",
+            authDomain: "covington-pd-cc4cb.firebaseapp.com",
+            databaseURL: "https://covington-pd-cc4cb-default-rtdb.firebaseio.com",
+            projectId: "covington-pd-cc4cb",
+            storageBucket: "covington-pd-cc4cb.firebasestorage.app",
+            messagingSenderId: "350585131681",
+            appId: "1:350585131681:web:b98b322b23b6cf4135d6e0",
+            measurementId: "G-E2Q473WCF1"
+        };
 
-        let dbClient = null;
-        try {
-            if (window.supabase) {
-                dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log("Supabase initialized successfully.");
-            } else {
-                console.error("Supabase script CDN failed to load.");
-            }
-        } catch (err) {
-            console.error("Error creating Supabase client:", err);
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
+        const dbRef = firebase.database().ref();
 
         const DEFAULT_USERS = [
             {
@@ -821,57 +824,51 @@
         // REALTIME CLOUD SYNC & PUSH NOTIFICATIONS
         // ==========================================
         function setupRealtimeSubscription() {
-            if (!dbClient) return;
-
-            dbClient
-                .channel('public:portal_store')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'portal_store' }, payload => {
-                    if (payload.new) {
-                        const { key, value } = payload.new;
-
-                        if (key === 'cpd_chat_msgs' && JSON.stringify(chatMessages) !== JSON.stringify(value)) {
-                            const oldLen = chatMessages.length;
-                            chatMessages = value;
-                            renderChat();
-                            if (value.length > oldLen) {
-                                const latest = value[value.length - 1];
-                                if (currentUser && latest.author !== `${currentUser.rank} ${currentUser.name}`) {
-                                    triggerDeviceNotification("CPD Chat", `${latest.author}: ${latest.text}`, "chat");
-                                }
+            dbRef.on('value', snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    if (data.cpd_chat_msgs && JSON.stringify(chatMessages) !== JSON.stringify(data.cpd_chat_msgs)) {
+                        const oldLen = chatMessages.length;
+                        chatMessages = data.cpd_chat_msgs;
+                        renderChat();
+                        if (data.cpd_chat_msgs.length > oldLen) {
+                            const latest = data.cpd_chat_msgs[data.cpd_chat_msgs.length - 1];
+                            if (currentUser && latest.author !== `${currentUser.rank} ${currentUser.name}`) {
+                                triggerDeviceNotification("CPD Chat", `${latest.author}: ${latest.text}`, "chat");
                             }
-                        }
-
-                        if (key === 'cpd_notices' && JSON.stringify(notices) !== JSON.stringify(value)) {
-                            const oldLen = notices.length;
-                            notices = value;
-                            renderNotices();
-                            if (value.length > oldLen) {
-                                triggerDeviceNotification("CPD Announcement", value[0].title, "announcements");
-                            }
-                        }
-
-                        if (key === 'cpd_users' && JSON.stringify(users) !== JSON.stringify(value)) {
-                            users = value;
-                            if (currentUser && currentUser.isAdmin) {
-                                renderAdminUserList();
-                                populateAdminUserDropdown();
-                            }
-                        }
-
-                        if (key === 'cpd_schedule' && JSON.stringify(scheduleData) !== JSON.stringify(value)) {
-                            scheduleData = value;
-                            renderCalendar();
-                            renderAdminCalendar();
-                            triggerDeviceNotification("CPD Schedule Update", "Duty schedule/shifts updated.", "schedule");
-                        }
-
-                        if (key === 'cpd_chat_channels' && JSON.stringify(chatChannels) !== JSON.stringify(value)) {
-                            chatChannels = value;
-                            renderChatChannels();
                         }
                     }
-                })
-                .subscribe();
+
+                    if (data.cpd_notices && JSON.stringify(notices) !== JSON.stringify(data.cpd_notices)) {
+                        const oldLen = notices.length;
+                        notices = data.cpd_notices;
+                        renderNotices();
+                        if (data.cpd_notices.length > oldLen) {
+                            triggerDeviceNotification("CPD Announcement", data.cpd_notices[0].title, "announcements");
+                        }
+                    }
+
+                    if (data.cpd_users && JSON.stringify(users) !== JSON.stringify(data.cpd_users)) {
+                        users = data.cpd_users;
+                        if (currentUser && currentUser.isAdmin) {
+                            renderAdminUserList();
+                            populateAdminUserDropdown();
+                        }
+                    }
+
+                    if (data.cpd_schedule && JSON.stringify(scheduleData) !== JSON.stringify(data.cpd_schedule)) {
+                        scheduleData = data.cpd_schedule;
+                        renderCalendar();
+                        renderAdminCalendar();
+                        triggerDeviceNotification("CPD Schedule Update", "Duty schedule/shifts updated.", "schedule");
+                    }
+
+                    if (data.cpd_chat_channels && JSON.stringify(chatChannels) !== JSON.stringify(data.cpd_chat_channels)) {
+                        chatChannels = data.cpd_chat_channels;
+                        renderChatChannels();
+                    }
+                }
+            });
         }
 
         function requestNotificationPermission() {
@@ -922,20 +919,18 @@
         }
 
         async function syncFromCloudSilent() {
-            if (!dbClient) return;
             try {
-                const { data, error } = await dbClient.from('portal_store').select('*');
-                if (!error && data && data.length > 0) {
-                    data.forEach(row => {
-                        if (row.key === 'cpd_users' && row.value) users = row.value;
-                        if (row.key === 'cpd_notices' && row.value) notices = row.value;
-                        if (row.key === 'cpd_chat_channels' && row.value) chatChannels = row.value;
-                        if (row.key === 'cpd_chat_msgs' && row.value) chatMessages = row.value;
-                        if (row.key === 'cpd_schedule' && row.value) scheduleData = row.value;
-                    });
+                const snapshot = await dbRef.once('value');
+                const data = snapshot.val();
+                if (data) {
+                    if (data.cpd_users) users = data.cpd_users;
+                    if (data.cpd_notices) notices = data.cpd_notices;
+                    if (data.cpd_chat_channels) chatChannels = data.cpd_chat_channels;
+                    if (data.cpd_chat_msgs) chatMessages = data.cpd_chat_msgs;
+                    if (data.cpd_schedule) scheduleData = data.cpd_schedule;
                 }
             } catch (err) {
-                console.error("Background sync error:", err);
+                console.error("Firebase sync error:", err);
             }
             renderNotices();
             renderChatChannels();
@@ -948,11 +943,10 @@
         }
 
         async function saveKeyToCloud(key, value) {
-            if (!dbClient) return;
             try {
-                await dbClient.from('portal_store').upsert({ key, value });
+                await firebase.database().ref(key).set(value);
             } catch (err) {
-                console.error("Supabase save error:", err);
+                console.error("Firebase save error:", err);
             }
         }
 
@@ -1019,7 +1013,7 @@
             users.push(newUser);
             await saveKeyToCloud('cpd_users', users);
 
-            alert("Account request submitted successfully to the cloud! An administrator must approve your account before you can log in.");
+            alert("Account request submitted successfully to Firebase! An administrator must approve your account before you can log in.");
             toggleAuthView(false);
         }
 
