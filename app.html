@@ -597,10 +597,10 @@
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
                 <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls synced in real-time via Firebase Realtime Database.</p>
-                <div style="display: flex; gap: 8px;">
-                    <button type="button" class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px; margin-bottom:0;" onclick="syncFromCloudSilent()">🔄 REFRESH FROM CLOUD</button>
-                    <button type="button" class="btn-danger" style="font-size: 11px; padding: 10px; margin-bottom:0;" onclick="adminClearChat()">🗑️ CLEAR CHATS</button>
-                    <button type="button" class="btn-danger" style="font-size: 11px; padding: 10px; margin-bottom:0;" onclick="adminClearNotices()">🗑️ CLEAR NOTICES</button>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px; margin-bottom:0; flex: 1;" onclick="syncFromCloudSilent()">🔄 REFRESH</button>
+                    <button type="button" class="btn-danger" style="font-size: 11px; padding: 10px; margin-bottom:0; flex: 1;" onclick="adminClearChat()">🗑️ CLEAR CHATS</button>
+                    <button type="button" class="btn-danger" style="font-size: 11px; padding: 10px; margin-bottom:0; flex: 1;" onclick="adminClearNotices()">🗑️ CLEAR NOTICES</button>
                 </div>
             </div>
 
