@@ -893,21 +893,34 @@
             });
         }
 
-        // Helper to convert base64 VAPID string into a proper Uint8Array byte array for browser Push API compliance
+        // Direct Base64Url-to-Uint8Array decoder completely bypassing native atob()
         function urlBase64ToUint8Array(base64String) {
-            const sanitized = base64String.replace(/\s+/g, '');
-            const padding = '='.repeat((4 - (sanitized.length % 4)) % 4);
-            const base64 = (sanitized + padding)
-                .replace(/-/g, '+')
-                .replace(/_/g, '/');
-
-            const rawData = window.atob(base64);
-            const outputArray = new Uint8Array(rawData.length);
-
-            for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
+            const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+            let str = base64String.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+            while (str.length % 4 !== 0) {
+                str += '=';
             }
-            return outputArray;
+
+            const bytes = [];
+            for (let i = 0; i < str.length; i += 4) {
+                const b1 = base64Chars.indexOf(str.charAt(i));
+                const b2 = base64Chars.indexOf(str.charAt(i + 1));
+                const b3 = str.charAt(i + 2) === '=' ? 64 : base64Chars.indexOf(str.charAt(i + 2));
+                const b4 = str.charAt(i + 3) === '=' ? 64 : base64Chars.indexOf(str.charAt(i + 3));
+
+                const byte1 = (b1 << 2) | (b2 >> 4);
+                bytes.push(byte1);
+
+                if (b3 !== 64) {
+                    const byte2 = ((b2 & 15) << 4) | (b3 >> 2);
+                    bytes.push(byte2);
+                }
+                if (b4 !== 64) {
+                    const byte3 = ((b3 & 3) << 6) | b4;
+                    bytes.push(byte3);
+                }
+            }
+            return new Uint8Array(bytes);
         }
 
         function requestNotificationPermission() {
