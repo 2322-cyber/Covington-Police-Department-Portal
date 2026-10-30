@@ -725,7 +725,6 @@
                     return;
                 }
             }
-            // Force show login overlay if no active session
             document.getElementById('auth-overlay').style.display = 'flex';
         };
 
@@ -735,17 +734,17 @@
 
             try {
                 const { data, error } = await supabase.from('portal_store').select('*');
-                if (!error && data) {
+                if (!error && data && data.length > 0) {
                     data.forEach(row => {
-                        if (row.key === 'cpd_users') users = row.value || DEFAULT_USERS;
-                        if (row.key === 'cpd_notices') notices = row.value || notices;
-                        if (row.key === 'cpd_chat_channels') chatChannels = row.value || chatChannels;
-                        if (row.key === 'cpd_chat_msgs') chatMessages = row.value || chatMessages;
-                        if (row.key === 'cpd_schedule') scheduleData = row.value || {};
+                        if (row.key === 'cpd_users' && row.value) users = row.value;
+                        if (row.key === 'cpd_notices' && row.value) notices = row.value;
+                        if (row.key === 'cpd_chat_channels' && row.value) chatChannels = row.value;
+                        if (row.key === 'cpd_chat_msgs' && row.value) chatMessages = row.value;
+                        if (row.key === 'cpd_schedule' && row.value) scheduleData = row.value;
                     });
                 }
             } catch (err) {
-                console.error("Supabase load error:", err);
+                console.error("Supabase load error, using defaults:", err);
             }
 
             renderNotices();
@@ -769,14 +768,16 @@
         }
 
         async function handleLogin() {
+            // Ensure we pull latest users from cloud before matching
             await syncFromCloud();
+
             const badge = document.getElementById('login-badge').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
 
             const found = users.find(u => u.badge === badge && u.pass === pass);
 
             if (!found) {
-                alert("Invalid badge / unit number or password.");
+                alert("Invalid badge / unit number or password. Please check your credentials.");
                 return;
             }
 
