@@ -895,9 +895,9 @@
 
         // Helper to convert base64 VAPID string into a proper Uint8Array byte array for browser Push API compliance
         function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
             const base64 = (base64String + padding)
-                .replace(/\-/g, '+')
+                .replace(/-/g, '+')
                 .replace(/_/g, '/');
 
             const rawData = window.atob(base64);
@@ -932,7 +932,7 @@
 
                             console.log('Service Worker registered successfully:', registration.scope);
 
-                            // Properly format VAPID key into a Uint8Array P-256 key
+                            // Format VAPID key into a Uint8Array P-256 public key
                             const applicationServerKey = urlBase64ToUint8Array(VAPID_KEY);
 
                             const token = await messaging.getToken({
