@@ -548,7 +548,7 @@
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
                 <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls synced in real-time via Supabase.</p>
-                <button type="button" class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px;" onclick="syncFromCloud()">🔄 REFRESH FROM CLOUD</button>
+                <button type="button" class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px;" onclick="syncFromCloudSilent()">🔄 REFRESH FROM CLOUD</button>
             </div>
 
             <!-- DEDICATED PENDING APPROVALS SECTION -->
@@ -677,9 +677,9 @@
         const SUPABASE_URL = "https://fjhfmtsssqmjgmsmawp.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_uY3genS-6ZJj8KkKv5DVSw_J1Hm...";
 
-        let supabase = null;
+        let dbClient = null;
         if (SUPABASE_URL !== "YOUR_SUPABASE_PROJECT_URL" && window.supabase) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
 
         const DEFAULT_USERS = [
@@ -713,10 +713,8 @@
         let currentCalendarDate = new Date();
 
         window.onload = async function() {
-            // Instant local fallback check first so login overlay appears immediately
             const savedBadge = localStorage.getItem('cpd_active_badge');
             if (savedBadge) {
-                // We will try loading cloud in background
                 syncFromCloudSilent();
                 const found = users.find(u => u.badge === savedBadge);
                 if (found && found.status === 'approved') {
@@ -728,14 +726,13 @@
             }
             
             document.getElementById('auth-overlay').style.display = 'flex';
-            // Sync cloud in background to pull latest accounts for login verification
             await syncFromCloudSilent();
         };
 
         async function syncFromCloudSilent() {
-            if (!supabase) return;
+            if (!dbClient) return;
             try {
-                const { data, error } = await supabase.from('portal_store').select('*');
+                const { data, error } = await dbClient.from('portal_store').select('*');
                 if (!error && data && data.length > 0) {
                     data.forEach(row => {
                         if (row.key === 'cpd_users' && row.value) users = row.value;
@@ -759,9 +756,9 @@
         }
 
         async function saveKeyToCloud(key, value) {
-            if (!supabase) return;
+            if (!dbClient) return;
             try {
-                await supabase.from('portal_store').upsert({ key, value });
+                await dbClient.from('portal_store').upsert({ key, value });
             } catch (err) {
                 console.error("Supabase save error:", err);
             }
@@ -779,7 +776,6 @@
                 return;
             }
 
-            // Quick cloud sync before verifying
             await syncFromCloudSilent();
 
             const found = users.find(u => u.badge === badge && u.pass === pass);
