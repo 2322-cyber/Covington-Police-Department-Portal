@@ -13,12 +13,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages
+// Handle background notifications when the app/browser tab is closed
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message: ', payload);
-    const notificationTitle = payload.notification.title || "CPD Portal Alert";
+    const notificationTitle = payload.notification?.title || "CPD Portal Alert";
     const notificationOptions = {
-        body: payload.notification.body || "New department update received.",
+        body: payload.notification?.body || "New department update received.",
         icon: "https://cdn-icons-png.flaticon.com/512/1022/1022313.png"
     };
 
