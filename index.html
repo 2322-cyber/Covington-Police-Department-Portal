@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Covington PD">
@@ -29,30 +29,36 @@
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100%;
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-primary);
             height: 100vh;
+            height: -webkit-fill-available;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
+        html {
+            height: -webkit-fill-available;
+        }
+
         /* Top Header */
         header {
-            padding: 45px 20px 15px 20px;
-            background: rgba(18, 26, 38, 0.9);
-            backdrop-filter: blur(10px);
+            padding: 35px 20px 15px 20px;
+            background: #121a26;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-shrink: 0;
         }
 
         .header-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             font-family: monospace;
             letter-spacing: 1px;
@@ -72,8 +78,9 @@
         main {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
-            padding-bottom: 90px;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px;
+            padding-bottom: 100px;
         }
 
         .card {
@@ -124,6 +131,15 @@
             font-size: 14px;
             margin-bottom: 12px;
             outline: none;
+            -webkit-appearance: none;
+        }
+
+        select {
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300d9ff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 10px;
+            padding-right: 30px;
         }
 
         input:focus, select:focus, textarea:focus {
@@ -173,6 +189,7 @@
             height: 18px;
             margin-bottom: 0;
             cursor: pointer;
+            -webkit-appearance: checkbox;
         }
 
         /* Navigation */
@@ -181,13 +198,12 @@
             bottom: 0;
             width: 100%;
             height: 70px;
-            background: rgba(5, 8, 13, 0.95);
-            backdrop-filter: blur(15px);
+            background: #05080d;
             border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding-bottom: 10px;
+            padding-bottom: env(safe-area-inset-bottom, 10px);
             z-index: 100;
         }
 
@@ -201,6 +217,9 @@
             font-size: 10px;
             font-family: monospace;
             cursor: pointer;
+            background: none;
+            border: none;
+            flex: 1;
         }
 
         .tab-item.active {
@@ -235,7 +254,7 @@
             background: var(--bg-color);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 4px 10px;
+            padding: 6px 12px;
             border-radius: 6px;
             font-size: 11px;
             font-family: monospace;
@@ -263,7 +282,7 @@
             border: 1px solid rgba(255, 215, 0, 0.2);
             border-radius: 6px;
             padding: 6px 2px;
-            min-height: 60px;
+            min-height: 55px;
             font-size: 11px;
             cursor: pointer;
             display: flex;
@@ -275,7 +294,6 @@
         .cal-day-cell.selected-day {
             border-color: var(--admin-gold);
             background: rgba(255, 215, 0, 0.25) !important;
-            box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
         }
 
         .cal-shift-badge {
@@ -300,6 +318,7 @@
             overflow-x: auto;
             padding-bottom: 8px;
             margin-bottom: 12px;
+            -webkit-overflow-scrolling: touch;
         }
 
         .channel-chip {
@@ -537,11 +556,8 @@
         <section id="tab-admin" class="tab-content">
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
-                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls for shift scheduling, group chat rooms, officer approvals, rank adjustments, and PTO balance management.</p>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px; margin-bottom: 0;" onclick="renderAdminUserList()">🔄 REFRESH PENDING LIST</button>
-                    <button class="btn-danger" style="font-size: 11px; padding: 10px; margin-bottom: 0;" onclick="resetSystemData()">🔄 RESET SYSTEM CACHE</button>
-                </div>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls for shift scheduling, group chat rooms, officer approvals, rank adjustments, unit numbers, and PTO balance management.</p>
+                <button class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px;" onclick="renderAdminUserList()">🔄 REFRESH PENDING LIST</button>
             </div>
 
             <!-- PENDING ACCOUNT APPROVALS ALERT -->
@@ -657,30 +673,30 @@
 
     <!-- BOTTOM NAVIGATION -->
     <nav>
-        <div class="tab-item active" onclick="switchTab('notices', this)">
+        <button class="tab-item active" onclick="switchTab('notices', this)">
             <span class="tab-icon">📢</span>
             <span>Notices</span>
-        </div>
-        <div class="tab-item" onclick="switchTab('schedule', this)">
+        </button>
+        <button class="tab-item" onclick="switchTab('schedule', this)">
             <span class="tab-icon">📅</span>
             <span>Schedule</span>
-        </div>
-        <div class="tab-item" onclick="switchTab('messages', this)">
+        </button>
+        <button class="tab-item" onclick="switchTab('messages', this)">
             <span class="tab-icon">💬</span>
             <span>Chat</span>
-        </div>
-        <div class="tab-item" onclick="switchTab('balances', this)">
+        </button>
+        <button class="tab-item" onclick="switchTab('balances', this)">
             <span class="tab-icon">⏱️</span>
             <span>Balances</span>
-        </div>
-        <div class="tab-item admin-tab-item" id="nav-admin-btn" onclick="switchTab('admin', this)" style="display: none;">
+        </button>
+        <button class="tab-item admin-tab-item" id="nav-admin-btn" onclick="switchTab('admin', this)" style="display: none;">
             <span class="tab-icon">⚙️</span>
             <span>Admin</span>
-        </div>
-        <div class="tab-item" onclick="switchTab('profile', this)">
+        </button>
+        <button class="tab-item" onclick="switchTab('profile', this)">
             <span class="tab-icon">👤</span>
             <span>Profile</span>
-        </div>
+        </button>
     </nav>
 
     <script>
@@ -696,20 +712,14 @@
                 isAdmin: true,
                 vacation: 20, personal: 5, comp: 40,
                 notifications: { announcements: true, chat: true, schedule: true }
-            },
-            {
-                badge: "104",
-                name: "Officer Smith",
-                rank: "Officer",
-                pass: "pass123",
-                phone: "(765) 555-0104",
-                emergency: "Jane Smith (Spouse)",
-                status: "approved",
-                isAdmin: false,
-                vacation: 12, personal: 3, comp: 15,
-                notifications: { announcements: true, chat: true, schedule: true }
             }
         ];
+
+        // PURGE OLD REQUESTS & RESET TO CLEAN SLATE
+        if (!localStorage.getItem('cpd_clean_slate_v2')) {
+            localStorage.clear();
+            localStorage.setItem('cpd_clean_slate_v2', 'true');
+        }
 
         let users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
         let notices = JSON.parse(localStorage.getItem('cpd_notices')) || [
@@ -748,14 +758,6 @@
                 document.getElementById('auth-overlay').style.display = 'flex';
             }
         };
-
-        function resetSystemData() {
-            if (confirm("This will clear out cached user profile data and restore default admin settings. Continue?")) {
-                localStorage.clear();
-                alert("System data reset successfully! Reloading portal.");
-                location.reload();
-            }
-        }
 
         function handleLogin() {
             users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
@@ -919,7 +921,6 @@
             document.getElementById('signup-box').style.display = showSignUp ? 'block' : 'none';
         }
 
-        // MONTH NAVIGATION
         function changeMonth(direction) {
             currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
             selectedCalendarDays.clear();
@@ -927,7 +928,6 @@
             renderAdminCalendar();
         }
 
-        // CALENDAR (Officer View)
         function renderCalendar() {
             const year = currentCalendarDate.getFullYear();
             const month = currentCalendarDate.getMonth();
@@ -966,7 +966,6 @@
             }
         }
 
-        // ADMIN CALENDAR
         function renderAdminCalendar() {
             const year = currentCalendarDate.getFullYear();
             const month = currentCalendarDate.getMonth();
@@ -1114,7 +1113,6 @@
             renderCalendar();
         }
 
-        // CHAT
         function renderChatChannels() {
             const bar = document.getElementById('chat-channels-bar');
             bar.innerHTML = chatChannels.map(ch => `
@@ -1182,7 +1180,6 @@
             input.value = '';
         }
 
-        // ANNOUNCEMENTS
         function renderNotices() {
             const list = document.getElementById('notices-list');
             list.innerHTML = '';
@@ -1221,7 +1218,6 @@
             document.getElementById('new-notice-card').style.display = 'none';
         }
 
-        // ADMIN USER MANAGEMENT, RANKS & PTO EDITOR
         function renderAdminUserList() {
             users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
 
@@ -1271,7 +1267,6 @@
                         <span class="badge-status ${u.status === 'pending' ? 'status-pending' : 'status-approved'}">${u.status.toUpperCase()}</span>
                     </div>
 
-                    <!-- Edit Officer Details, Ranks & Unit Numbers -->
                     <div style="background:rgba(18,26,38,0.8); padding:8px; border-radius:6px; margin-bottom:10px;">
                         <div style="font-size:10px; color:var(--admin-gold); margin-bottom:6px; font-weight:bold;">EDIT OFFICER DETAILS & UNIT #</div>
                         
@@ -1301,7 +1296,6 @@
                         <button class="btn-primary" style="background:var(--admin-gold); padding:6px; margin-bottom:0; font-size:10px;" onclick="updateUserDetails('${u.badge}')">SAVE DETAILS</button>
                     </div>
 
-                    <!-- PTO Balance Controls -->
                     <div style="background:rgba(18,26,38,0.8); padding:8px; border-radius:6px; margin-bottom:10px;">
                         <div style="font-size:10px; color:var(--admin-gold); margin-bottom:6px; font-weight:bold;">MANAGE PTO BALANCES</div>
                         <div class="grid-3">
@@ -1469,7 +1463,6 @@
             alert(`Updated admin status for ${users[index].name}.`);
         }
 
-        // NOTIFICATIONS PERMISSION
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
                 alert("This browser does not support notifications.");
@@ -1486,7 +1479,6 @@
             });
         }
 
-        // TAB SWITCHING
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
