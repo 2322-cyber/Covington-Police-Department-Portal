@@ -11,6 +11,7 @@
     <!-- Firebase SDK Compat Libraries -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
 
     <style>
         :root {
@@ -765,11 +766,18 @@
             measurementId: "G-E2Q473WCF1"
         };
 
+        const VAPID_KEY = "BMVXpeBIZrswE8vM-wUYqXDvssaLnK7Q4rbwXakoWHHwevvsbs2ezEDsZn2o-_GoNXkbfcNdmLEt1XGoOsyEB7k";
+
         // Initialize Firebase
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const dbRef = firebase.database().ref();
+        let messaging = null;
+
+        if (firebase.messaging.isSupported()) {
+            messaging = firebase.messaging();
+        }
 
         const DEFAULT_USERS = [
             {
@@ -873,7 +881,7 @@
 
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
-                alert("This browser does not support desktop notifications.");
+                alert("This browser does not support notifications.");
                 return;
             }
 
@@ -883,7 +891,23 @@
                     btn.innerText = "✓ NOTIFICATIONS ENABLED";
                     btn.style.background = "var(--success)";
                     btn.style.color = "#000";
-                    alert("Notifications enabled! You will now receive live push alerts for squad updates.");
+
+                    // Register Service Worker & Obtain FCM Background Token
+                    if ('serviceWorker' in navigator && messaging) {
+                        navigator.serviceWorker.register('firebase-messaging-sw.js')
+                            .then(registration => {
+                                console.log('Service Worker registered with scope:', registration.scope);
+                                return messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+                            })
+                            .then(token => {
+                                console.log('FCM Token generated:', token);
+                            })
+                            .catch(err => {
+                                console.error('Service Worker / FCM setup error:', err);
+                            });
+                    }
+
+                    alert("Background push notifications enabled! You will now receive system alerts even when the browser tab is closed.");
                 } else {
                     btn.innerText = "❌ NOTIFICATIONS BLOCKED";
                     btn.style.background = "var(--danger)";
