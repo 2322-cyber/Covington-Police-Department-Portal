@@ -713,10 +713,11 @@
         let currentCalendarDate = new Date();
 
         window.onload = async function() {
-            await syncFromCloud();
-
+            // Instant local fallback check first so login overlay appears immediately
             const savedBadge = localStorage.getItem('cpd_active_badge');
             if (savedBadge) {
+                // We will try loading cloud in background
+                syncFromCloudSilent();
                 const found = users.find(u => u.badge === savedBadge);
                 if (found && found.status === 'approved') {
                     currentUser = found;
@@ -725,13 +726,14 @@
                     return;
                 }
             }
+            
             document.getElementById('auth-overlay').style.display = 'flex';
+            // Sync cloud in background to pull latest accounts for login verification
+            await syncFromCloudSilent();
         };
 
-        // --- SUPABASE CLOUD SYNC FUNCTIONS ---
-        async function syncFromCloud() {
+        async function syncFromCloudSilent() {
             if (!supabase) return;
-
             try {
                 const { data, error } = await supabase.from('portal_store').select('*');
                 if (!error && data && data.length > 0) {
@@ -744,14 +746,12 @@
                     });
                 }
             } catch (err) {
-                console.error("Supabase load error, using defaults:", err);
+                console.error("Background sync error:", err);
             }
-
             renderNotices();
             renderChatChannels();
             renderCalendar();
             renderAdminCalendar();
-
             if (currentUser && currentUser.isAdmin) {
                 renderAdminUserList();
                 populateAdminUserDropdown();
@@ -768,11 +768,19 @@
         }
 
         async function handleLogin() {
-            // Ensure we pull latest users from cloud before matching
-            await syncFromCloud();
+            const badgeInput = document.getElementById('login-badge');
+            const passInput = document.getElementById('login-pass');
+            
+            const badge = badgeInput ? badgeInput.value.trim() : "";
+            const pass = passInput ? passInput.value.trim() : "";
 
-            const badge = document.getElementById('login-badge').value.trim();
-            const pass = document.getElementById('login-pass').value.trim();
+            if (!badge || !pass) {
+                alert("Please enter both your badge/unit number and password.");
+                return;
+            }
+
+            // Quick cloud sync before verifying
+            await syncFromCloudSilent();
 
             const found = users.find(u => u.badge === badge && u.pass === pass);
 
@@ -794,8 +802,6 @@
         }
 
         async function handleRegister() {
-            await syncFromCloud();
-
             const name = document.getElementById('reg-name').value.trim();
             const badge = document.getElementById('reg-badge').value.trim();
             const rank = document.getElementById('reg-rank').value;
@@ -806,6 +812,8 @@
                 alert("Please fill in all required fields.");
                 return;
             }
+
+            await syncFromCloudSilent();
 
             if (users.find(u => u.badge === badge)) {
                 alert("An account or unit number with this badge/unit ID already exists.");
@@ -1344,7 +1352,7 @@
             el.classList.add('active');
 
             if (tabId === 'admin') {
-                syncFromCloud();
+                syncFromCloudSilent();
             }
         }
     </script>
