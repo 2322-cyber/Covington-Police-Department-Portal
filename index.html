@@ -2,17 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Covington PD">
     <title>Covington Police Department</title>
     
+    <!-- Supabase JS CDN Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --bg-color: #05080d;
             --card-bg: #121a26;
             --cyber-blue: #00d9ff;
+            --cyber-blue-dark: #0066cc;
             --text-primary: #ffffff;
             --text-secondary: #94a3b8;
             --border-color: rgba(0, 217, 255, 0.3);
@@ -47,7 +51,8 @@
 
         /* Top Header */
         header {
-            padding: 35px 20px 15px 20px;
+            padding: env(safe-area-inset-top, 20px) 20px 15px 20px;
+            padding-top: max(35px, env(safe-area-inset-top, 20px));
             background: #121a26;
             border-bottom: 1px solid var(--border-color);
             display: flex;
@@ -79,7 +84,7 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             padding: 16px;
-            padding-bottom: 100px;
+            padding-bottom: 110px;
         }
 
         .card {
@@ -131,6 +136,7 @@
             margin-bottom: 12px;
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
         }
 
         select {
@@ -146,13 +152,18 @@
             box-shadow: 0 0 8px rgba(0, 217, 255, 0.4);
         }
 
+        button {
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
         button.btn-primary {
             background: var(--cyber-blue);
             color: #000;
             font-weight: bold;
             font-family: monospace;
             border: none;
-            cursor: pointer;
             box-shadow: 0 0 10px rgba(0, 217, 255, 0.4);
         }
 
@@ -161,7 +172,6 @@
             color: var(--cyber-blue);
             border: 1px solid var(--cyber-blue);
             font-family: monospace;
-            cursor: pointer;
         }
 
         button.btn-danger {
@@ -169,26 +179,6 @@
             color: #fff;
             border: none;
             font-weight: bold;
-            cursor: pointer;
-        }
-
-        /* Checkbox styling */
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            font-size: 12px;
-            font-family: monospace;
-            cursor: pointer;
-        }
-
-        .checkbox-group input {
-            width: 18px;
-            height: 18px;
-            margin-bottom: 0;
-            cursor: pointer;
-            -webkit-appearance: checkbox;
         }
 
         /* Navigation */
@@ -219,6 +209,7 @@
             background: none;
             border: none;
             flex: 1;
+            padding: 6px 0;
         }
 
         .tab-item.active {
@@ -420,6 +411,7 @@
             <div style="font-size: 60px; margin-bottom: 10px; text-shadow: 0 0 15px var(--cyber-blue);">🛡️</div>
             <h1 style="font-family: monospace; color: var(--cyber-blue); font-size: 20px;">COVINGTON POLICE DEPARTMENT</h1>
             <p style="color: var(--text-secondary); font-size: 13px; letter-spacing: 2px; font-family: monospace; margin-top: 6px;">Department Portal</p>
+            <p id="cloud-status" style="font-size: 10px; color: var(--success); margin-top: 4px; font-family: monospace;">☁️ CONNECTED TO SUPABASE</p>
         </div>
 
         <div class="card" id="login-box">
@@ -428,8 +420,8 @@
             <input type="text" id="login-badge" placeholder="e.g., 23-22">
             <label>Password</label>
             <input type="password" id="login-pass" placeholder="Password">
-            <button class="btn-primary" onclick="handleLogin()">ACCESS SYSTEM</button>
-            <button class="btn-secondary" onclick="toggleAuthView(true)">Request New Account</button>
+            <button type="button" class="btn-primary" onclick="handleLogin()">ACCESS SYSTEM</button>
+            <button type="button" class="btn-secondary" onclick="toggleAuthView(true)">Request New Account</button>
         </div>
 
         <div class="card" id="signup-box" style="display: none;">
@@ -452,8 +444,8 @@
             <input type="tel" id="reg-phone" placeholder="(555) 000-0000">
             <label>Create Password</label>
             <input type="password" id="reg-pass" placeholder="Create Password">
-            <button class="btn-primary" onclick="handleRegister()">SUBMIT FOR APPROVAL</button>
-            <button class="btn-secondary" onclick="toggleAuthView(false)">Back to Sign In</button>
+            <button type="button" class="btn-primary" onclick="handleRegister()">SUBMIT FOR APPROVAL</button>
+            <button type="button" class="btn-secondary" onclick="toggleAuthView(false)">Back to Sign In</button>
         </div>
     </div>
 
@@ -470,14 +462,14 @@
         <!-- 📢 ANNOUNCEMENTS TAB -->
         <section id="tab-notices" class="tab-content active">
             <div id="admin-notice-tools" style="display: none;">
-                <button class="btn-secondary" onclick="showNewNoticeForm()" style="margin-bottom: 15px;">➕ Post Announcement</button>
+                <button type="button" class="btn-secondary" onclick="showNewNoticeForm()" style="margin-bottom: 15px;">➕ Post Announcement</button>
             </div>
 
             <div class="card" id="new-notice-card" style="display: none;">
                 <div class="card-title" style="margin-bottom: 10px;">COMPOSE ANNOUNCEMENT</div>
                 <input type="text" id="notice-title" placeholder="Title">
                 <textarea id="notice-body" placeholder="Announcement Details..." style="height:80px;"></textarea>
-                <button class="btn-primary" onclick="postNotice()">PUBLISH ANNOUNCEMENT</button>
+                <button type="button" class="btn-primary" onclick="postNotice()">PUBLISH ANNOUNCEMENT</button>
             </div>
 
             <div id="notices-list"></div>
@@ -487,9 +479,9 @@
         <section id="tab-schedule" class="tab-content">
             <div class="card">
                 <div class="calendar-nav-bar">
-                    <button class="cal-nav-btn" onclick="changeMonth(-1)">◀ PREV</button>
+                    <button type="button" class="cal-nav-btn" onclick="changeMonth(-1)">◀ PREV</button>
                     <span class="card-title" id="calendar-month-title">MONTH</span>
-                    <button class="cal-nav-btn" onclick="changeMonth(1)">NEXT ▶</button>
+                    <button type="button" class="cal-nav-btn" onclick="changeMonth(1)">NEXT ▶</button>
                 </div>
                 
                 <div class="calendar-grid">
@@ -525,7 +517,7 @@
                 
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="chat-msg" placeholder="Type message..." style="margin-bottom:0;">
-                    <button class="btn-primary" onclick="sendMessage()" style="width: 80px;">SEND</button>
+                    <button type="button" class="btn-primary" onclick="sendMessage()" style="width: 80px;">SEND</button>
                 </div>
             </div>
         </section>
@@ -555,19 +547,20 @@
         <section id="tab-admin" class="tab-content">
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
-                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls for shift scheduling, group chat rooms, officer approvals, rank adjustments, unit numbers, and PTO balance management.</p>
-                <button class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px;" onclick="renderAdminUserList()">🔄 FORCE REFRESH PENDING LIST</button>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls synced in real-time via Supabase.</p>
+                <button type="button" class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px;" onclick="syncFromCloud()">🔄 REFRESH FROM CLOUD</button>
             </div>
 
-            <!-- PENDING ACCOUNT APPROVALS ALERT -->
+            <!-- DEDICATED PENDING APPROVALS SECTION -->
             <div class="card" id="pending-approvals-card" style="border-color: var(--warning); display: none;">
-                <div class="card-title" style="color: var(--warning); margin-bottom: 10px;">🚨 PENDING ACCOUNT APPROVALS</div>
+                <div class="card-title" style="color: var(--warning); margin-bottom: 10px;">🚨 PENDING ACCOUNT APPROVALS (<span id="pending-count">0</span>)</div>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;">Officers waiting for command staff clearance:</p>
                 <div id="pending-users-list"></div>
             </div>
 
             <!-- SHIFT & TRAINING BUILDER -->
             <div class="card" style="border-color: var(--admin-gold);">
-                <div class="card-title" style="margin-bottom: 10px; color: var(--admin-gold);">📅 SHIFT & TRAINING BUILDER (ADMIN CALENDAR)</div>
+                <div class="card-title" style="margin-bottom: 10px; color: var(--admin-gold);">📅 SHIFT & TRAINING BUILDER</div>
                 <label>1. Select Officer / Group</label>
                 <select id="admin-shift-user"></select>
 
@@ -581,14 +574,12 @@
                     <option value="OFF">OFF / Rest Day</option>
                 </select>
 
-                <label>3. Click Days on the Calendar Below to Schedule</label>
-                <p style="font-size: 11px; color: var(--admin-gold); margin-bottom: 8px;">Selected days highlight in gold.</p>
-
+                <label>3. Click Days on Calendar Below</label>
                 <div style="background:var(--bg-color); padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.3); margin-bottom: 12px;">
                     <div class="calendar-nav-bar">
-                        <button class="cal-nav-btn" onclick="changeMonth(-1)">◀ PREV</button>
+                        <button type="button" class="cal-nav-btn" onclick="changeMonth(-1)">◀ PREV</button>
                         <span style="font-size:12px; color:var(--admin-gold); font-family:monospace;" id="admin-calendar-month-title">MONTH</span>
-                        <button class="cal-nav-btn" onclick="changeMonth(1)">NEXT ▶</button>
+                        <button type="button" class="cal-nav-btn" onclick="changeMonth(1)">NEXT ▶</button>
                     </div>
                     <div class="calendar-grid">
                         <div class="cal-day-label">S</div>
@@ -603,10 +594,9 @@
                 </div>
 
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn-primary" style="background:var(--admin-gold); color:#000; margin-bottom:0;" onclick="saveSelectedShifts()">SAVE SELECTED</button>
-                    <button class="btn-secondary" style="border-color:var(--admin-gold); color:var(--admin-gold); margin-bottom:0;" onclick="clearSelectedDays()">Clear Selections</button>
+                    <button type="button" class="btn-primary" style="background:var(--admin-gold); color:#000; margin-bottom:0;" onclick="saveSelectedShifts()">SAVE SELECTED</button>
+                    <button type="button" class="btn-secondary" style="border-color:var(--admin-gold); color:var(--admin-gold); margin-bottom:0;" onclick="clearSelectedDays()">Clear Selections</button>
                 </div>
-                <button class="btn-danger" style="margin-top: 10px; margin-bottom: 0; font-size: 11px;" onclick="clearEntireMonthSchedule()">🗑️ CLEAR MONTH SCHEDULE</button>
             </div>
 
             <!-- CREATE GROUP CHAT ROOM -->
@@ -614,13 +604,13 @@
                 <div class="card-title" style="margin-bottom: 10px; color: var(--admin-gold);">💬 CREATE GROUP CHAT ROOM</div>
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="new-channel-name" placeholder="Channel Name (e.g. Shift-A)" style="margin-bottom:0;">
-                    <button class="btn-primary" onclick="createChatChannel()" style="width: 110px;">CREATE</button>
+                    <button type="button" class="btn-primary" onclick="createChatChannel()" style="width: 110px;">CREATE</button>
                 </div>
             </div>
 
-            <!-- USER MANAGEMENT, RANKS & PTO BALANCES -->
+            <!-- USER MANAGEMENT & RANKS -->
             <div class="card">
-                <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">👤 OFFICER ACCOUNTS, RANKS & PTO BALANCES</div>
+                <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">👤 ALL OFFICER ACCOUNTS & RANKS</div>
                 <div id="users-management-list"></div>
             </div>
         </section>
@@ -635,24 +625,6 @@
                 <div id="profile-info-body" style="font-size: 13px; line-height: 1.8;"></div>
             </div>
 
-            <!-- NOTIFICATION PREFERENCES -->
-            <div class="card">
-                <div class="card-title" style="margin-bottom: 12px;">🔔 NOTIFICATION PREFERENCES</div>
-                <label class="checkbox-group">
-                    <input type="checkbox" id="notif-announcements" onchange="updateNotificationPrefs()">
-                    <span>Enable Announcement Alerts</span>
-                </label>
-                <label class="checkbox-group">
-                    <input type="checkbox" id="notif-chat" onchange="updateNotificationPrefs()">
-                    <span>Enable New Chat Message Alerts</span>
-                </label>
-                <label class="checkbox-group">
-                    <input type="checkbox" id="notif-schedule" onchange="updateNotificationPrefs()">
-                    <span>Enable Schedule Update Alerts</span>
-                </label>
-                <button class="btn-secondary" style="margin-top: 8px; margin-bottom: 0; font-size: 11px;" onclick="requestNotificationPermission()">GRANT BROWSER PERMISSION</button>
-            </div>
-
             <div class="card">
                 <div class="card-title" style="margin-bottom: 12px;">EDIT ACCOUNT DETAILS</div>
                 <label>Full Name</label>
@@ -663,46 +635,51 @@
                 <input type="text" id="edit-user-emergency" placeholder="Name & Contact Number">
                 <label>Update Password</label>
                 <input type="password" id="edit-user-pass" placeholder="Enter new password">
-                <button class="btn-primary" onclick="saveProfileChanges()">SAVE PROFILE UPDATES</button>
+                <button type="button" class="btn-primary" onclick="saveProfileChanges()">SAVE PROFILE UPDATES</button>
             </div>
 
-            <button class="btn-danger" onclick="logout()" style="margin-top: 10px;">LOG OUT</button>
+            <button type="button" class="btn-danger" onclick="logout()" style="margin-top: 10px;">LOG OUT</button>
         </section>
     </main>
 
     <!-- BOTTOM NAVIGATION -->
     <nav>
-        <button class="tab-item active" onclick="switchTab('notices', this)">
+        <button type="button" class="tab-item active" onclick="switchTab('notices', this)">
             <span class="tab-icon">📢</span>
             <span>Notices</span>
         </button>
-        <button class="tab-item" onclick="switchTab('schedule', this)">
+        <button type="button" class="tab-item" onclick="switchTab('schedule', this)">
             <span class="tab-icon">📅</span>
             <span>Schedule</span>
         </button>
-        <button class="tab-item" onclick="switchTab('messages', this)">
+        <button type="button" class="tab-item" onclick="switchTab('messages', this)">
             <span class="tab-icon">💬</span>
             <span>Chat</span>
         </button>
-        <button class="tab-item" onclick="switchTab('balances', this)">
+        <button type="button" class="tab-item" onclick="switchTab('balances', this)">
             <span class="tab-icon">⏱️</span>
             <span>Balances</span>
         </button>
-        <button class="tab-item admin-tab-item" id="nav-admin-btn" onclick="switchTab('admin', this)" style="display: none;">
+        <button type="button" class="tab-item admin-tab-item" id="nav-admin-btn" onclick="switchTab('admin', this)" style="display: none;">
             <span class="tab-icon">⚙️</span>
             <span>Admin</span>
         </button>
-        <button class="tab-item" onclick="switchTab('profile', this)">
+        <button type="button" class="tab-item" onclick="switchTab('profile', this)">
             <span class="tab-icon">👤</span>
             <span>Profile</span>
         </button>
     </nav>
 
     <script>
-        // HARD WIPE & CLEAN SLATE V3
-        if (!localStorage.getItem('cpd_clean_slate_v3')) {
-            localStorage.clear();
-            localStorage.setItem('cpd_clean_slate_v3', 'true');
+        // ==========================================
+        // SUPABASE CONFIGURATION
+        // ==========================================
+        const SUPABASE_URL = "https://fjhfmtsssqmjgmsmawp.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_uY3genS-6ZJj8KkKv5DVSw_J1Hm...";
+
+        let supabase = null;
+        if (SUPABASE_URL !== "YOUR_SUPABASE_PROJECT_URL" && window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
 
         const DEFAULT_USERS = [
@@ -720,28 +697,23 @@
             }
         ];
 
-        let users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
-        let notices = JSON.parse(localStorage.getItem('cpd_notices')) || [
+        let users = DEFAULT_USERS;
+        let notices = [
             { id: 1, title: "MANDATORY BRIEFING", body: "All shift leads report to dispatch at 07:00.", author: "Chief of Police", urgent: true }
         ];
-        let chatChannels = JSON.parse(localStorage.getItem('cpd_chat_channels')) || ["General Squad", "Shift A Patrol", "Command Staff"];
+        let chatChannels = ["General Squad", "Shift A Patrol", "Command Staff"];
         let activeChannel = chatChannels[0];
-        let chatMessages = JSON.parse(localStorage.getItem('cpd_chat_msgs')) || [
+        let chatMessages = [
             { channel: "General Squad", author: "Chief of Police", text: "Welcome to the new Covington PD portal chat!" }
         ];
-        let scheduleData = JSON.parse(localStorage.getItem('cpd_schedule')) || {};
+        let scheduleData = {};
 
         let currentUser = null;
         let selectedCalendarDays = new Set();
         let currentCalendarDate = new Date();
 
-        window.onload = function() {
-            loadFromStorage();
-
-            renderNotices();
-            renderChatChannels();
-            renderCalendar();
-            renderAdminCalendar();
+        window.onload = async function() {
+            await syncFromCloud();
 
             const savedBadge = localStorage.getItem('cpd_active_badge');
             if (savedBadge) {
@@ -758,33 +730,47 @@
             }
         };
 
-        // Listen for storage changes across tabs/devices
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'cpd_users') {
-                loadFromStorage();
-                if (currentUser && currentUser.isAdmin) {
-                    renderAdminUserList();
-                    populateAdminUserDropdown();
+        // --- SUPABASE CLOUD SYNC FUNCTIONS ---
+        async function syncFromCloud() {
+            if (!supabase) return;
+
+            try {
+                const { data, error } = await supabase.from('portal_store').select('*');
+                if (!error && data) {
+                    data.forEach(row => {
+                        if (row.key === 'cpd_users') users = row.value || DEFAULT_USERS;
+                        if (row.key === 'cpd_notices') notices = row.value || notices;
+                        if (row.key === 'cpd_chat_channels') chatChannels = row.value || chatChannels;
+                        if (row.key === 'cpd_chat_msgs') chatMessages = row.value || chatMessages;
+                        if (row.key === 'cpd_schedule') scheduleData = row.value || {};
+                    });
                 }
+            } catch (err) {
+                console.error("Supabase load error:", err);
             }
-        });
 
-        function loadFromStorage() {
-            const storedUsers = localStorage.getItem('cpd_users');
-            if (storedUsers) {
-                users = JSON.parse(storedUsers);
-            } else {
-                users = DEFAULT_USERS;
-                saveUsers();
+            renderNotices();
+            renderChatChannels();
+            renderCalendar();
+            renderAdminCalendar();
+
+            if (currentUser && currentUser.isAdmin) {
+                renderAdminUserList();
+                populateAdminUserDropdown();
             }
         }
 
-        function saveUsers() {
-            localStorage.setItem('cpd_users', JSON.stringify(users));
+        async function saveKeyToCloud(key, value) {
+            if (!supabase) return;
+            try {
+                await supabase.from('portal_store').upsert({ key, value });
+            } catch (err) {
+                console.error("Supabase save error:", err);
+            }
         }
 
-        function handleLogin() {
-            loadFromStorage();
+        async function handleLogin() {
+            await syncFromCloud();
             const badge = document.getElementById('login-badge').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
 
@@ -801,17 +787,14 @@
             }
 
             currentUser = found;
-            if (!currentUser.notifications) {
-                currentUser.notifications = { announcements: true, chat: true, schedule: true };
-            }
             localStorage.setItem('cpd_active_badge', currentUser.badge);
 
             document.getElementById('auth-overlay').style.display = 'none';
             setupUserSession();
         }
 
-        function handleRegister() {
-            loadFromStorage();
+        async function handleRegister() {
+            await syncFromCloud();
 
             const name = document.getElementById('reg-name').value.trim();
             const badge = document.getElementById('reg-badge').value.trim();
@@ -838,9 +821,9 @@
             };
 
             users.push(newUser);
-            saveUsers();
+            await saveKeyToCloud('cpd_users', users);
 
-            alert("Account request submitted successfully! An administrator must approve your account before you can log in.");
+            alert("Account request submitted successfully to the cloud! An administrator must approve your account before you can log in.");
             toggleAuthView(false);
         }
 
@@ -852,11 +835,6 @@
             document.getElementById('edit-user-phone').value = currentUser.phone || '';
             document.getElementById('edit-user-emergency').value = currentUser.emergency || '';
             document.getElementById('edit-user-pass').value = currentUser.pass;
-
-            if (!currentUser.notifications) currentUser.notifications = { announcements: true, chat: true, schedule: true };
-            document.getElementById('notif-announcements').checked = currentUser.notifications.announcements;
-            document.getElementById('notif-chat').checked = currentUser.notifications.chat;
-            document.getElementById('notif-schedule').checked = currentUser.notifications.schedule;
 
             document.getElementById('bal-vacation').innerText = currentUser.vacation;
             document.getElementById('bal-personal').innerText = currentUser.personal;
@@ -889,49 +867,6 @@
 
             document.getElementById('profile-role-tag').innerText = currentUser.isAdmin ? "ADMINISTRATOR" : "OFFICER";
             if (currentUser.isAdmin) document.getElementById('profile-role-tag').classList.add('tag-admin');
-        }
-
-        function updateNotificationPrefs() {
-            if (!currentUser) return;
-            currentUser.notifications = {
-                announcements: document.getElementById('notif-announcements').checked,
-                chat: document.getElementById('notif-chat').checked,
-                schedule: document.getElementById('notif-schedule').checked
-            };
-            const idx = users.findIndex(u => u.badge === currentUser.badge);
-            if (idx !== -1) users[idx] = currentUser;
-            saveUsers();
-        }
-
-        function triggerSystemNotification(title, body, prefKey) {
-            if (!currentUser || !currentUser.notifications || !currentUser.notifications[prefKey]) return;
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, { body });
-            }
-        }
-
-        function saveProfileChanges() {
-            const newName = document.getElementById('edit-user-name').value.trim();
-            const newPhone = document.getElementById('edit-user-phone').value.trim();
-            const newEmergency = document.getElementById('edit-user-emergency').value.trim();
-            const newPass = document.getElementById('edit-user-pass').value.trim();
-
-            if (!newName || !newPass) {
-                alert("Name and Password cannot be empty.");
-                return;
-            }
-
-            currentUser.name = newName;
-            currentUser.phone = newPhone;
-            currentUser.emergency = newEmergency;
-            currentUser.pass = newPass;
-
-            const idx = users.findIndex(u => u.badge === currentUser.badge);
-            if (idx !== -1) users[idx] = currentUser;
-
-            saveUsers();
-            setupUserSession();
-            alert("Account details updated successfully!");
         }
 
         function logout() {
@@ -1044,28 +979,6 @@
             renderAdminCalendar();
         }
 
-        function clearEntireMonthSchedule() {
-            const year = currentCalendarDate.getFullYear();
-            const month = currentCalendarDate.getMonth();
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-            if (!confirm(`Are you sure you want to clear ALL scheduled shifts and training for ${monthNames[month]} ${year}?`)) {
-                return;
-            }
-
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayKey = `${year}-${month + 1}-${day}`;
-                delete scheduleData[dayKey];
-            }
-
-            localStorage.setItem('cpd_schedule', JSON.stringify(scheduleData));
-            selectedCalendarDays.clear();
-            renderAdminCalendar();
-            renderCalendar();
-            alert(`Schedule cleared for ${monthNames[month]} ${year}!`);
-        }
-
         function showDayDetails(year, month, day) {
             const dayKey = `${year}-${month + 1}-${day}`;
             const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
@@ -1089,7 +1002,6 @@
         }
 
         function populateAdminUserDropdown() {
-            loadFromStorage();
             const select = document.getElementById('admin-shift-user');
             if (!select) return;
             select.innerHTML = '<option value="ALL">ALL OFFICERS (Full Squad Training)</option>';
@@ -1100,7 +1012,7 @@
             });
         }
 
-        function saveSelectedShifts() {
+        async function saveSelectedShifts() {
             if (selectedCalendarDays.size === 0) {
                 alert("Please click on one or more days on the admin calendar to select them before saving.");
                 return;
@@ -1128,9 +1040,7 @@
                 });
             });
 
-            localStorage.setItem('cpd_schedule', JSON.stringify(scheduleData));
-            triggerSystemNotification("📅 Schedule Updated", `New shifts/training posted for ${selectedCalendarDays.size} day(s).`, "schedule");
-
+            await saveKeyToCloud('cpd_schedule', scheduleData);
             alert(`Shifts saved for ${selectedCalendarDays.size} day(s)!`);
             selectedCalendarDays.clear();
             renderAdminCalendar();
@@ -1152,7 +1062,7 @@
             renderChatChannels();
         }
 
-        function createChatChannel() {
+        async function createChatChannel() {
             const name = document.getElementById('new-channel-name').value.trim();
             if (!name) return;
 
@@ -1162,7 +1072,7 @@
             }
 
             chatChannels.push(name);
-            localStorage.setItem('cpd_chat_channels', JSON.stringify(chatChannels));
+            await saveKeyToCloud('cpd_chat_channels', chatChannels);
             document.getElementById('new-channel-name').value = '';
             switchChannel(name);
             alert(`Channel #${name} created!`);
@@ -1184,7 +1094,7 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('chat-msg');
             const text = input.value.trim();
             if (!text || !currentUser) return;
@@ -1196,9 +1106,7 @@
             };
 
             chatMessages.push(newMsg);
-            localStorage.setItem('cpd_chat_msgs', JSON.stringify(chatMessages));
-
-            triggerSystemNotification(`💬 #${activeChannel} Message`, `${newMsg.author}: ${text}`, "chat");
+            await saveKeyToCloud('cpd_chat_msgs', chatMessages);
 
             renderChat();
             input.value = '';
@@ -1227,28 +1135,24 @@
             f.style.display = f.style.display === 'none' ? 'block' : 'none';
         }
 
-        function postNotice() {
+        async function postNotice() {
             const title = document.getElementById('notice-title').value.trim();
             const body = document.getElementById('notice-body').value.trim();
 
             if (!title || !body) return;
 
             notices.unshift({ id: Date.now(), title, body, author: currentUser.name, urgent: true });
-            localStorage.setItem('cpd_notices', JSON.stringify(notices));
-
-            triggerSystemNotification(`📢 New Notice: ${title}`, body, "announcements");
+            await saveKeyToCloud('cpd_notices', notices);
 
             renderNotices();
             document.getElementById('new-notice-card').style.display = 'none';
         }
 
-        // REWORKED ADMIN RENDER & FORCE REFRESH FUNCTION
         function renderAdminUserList() {
-            loadFromStorage();
-
             const container = document.getElementById('users-management-list');
             const pendingCard = document.getElementById('pending-approvals-card');
             const pendingList = document.getElementById('pending-users-list');
+            const pendingCountEl = document.getElementById('pending-count');
 
             if (!container) return;
             container.innerHTML = '';
@@ -1256,10 +1160,11 @@
 
             const pendingUsers = users.filter(u => u.status === 'pending');
 
+            if (pendingCountEl) pendingCountEl.innerText = pendingUsers.length;
+
             if (pendingUsers.length > 0 && pendingCard && pendingList) {
                 pendingCard.style.display = 'block';
                 pendingUsers.forEach(u => {
-                    const idx = users.findIndex(x => x.badge === u.badge);
                     pendingList.innerHTML += `
                         <div style="background:var(--bg-color); padding:10px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
                             <div>
@@ -1267,8 +1172,8 @@
                                 <span style="font-size:10px; color:var(--text-secondary);">${u.rank} • ${u.phone}</span>
                             </div>
                             <div style="display:flex; gap:6px;">
-                                <button class="btn-primary" style="padding:6px 10px; margin-bottom:0; font-size:11px; width:auto;" onclick="approveUser(${idx})">APPROVE</button>
-                                <button class="btn-danger" style="padding:6px 10px; margin-bottom:0; font-size:11px; width:auto;" onclick="deleteUserAccount('${u.badge}')">DELETE</button>
+                                <button type="button" class="btn-primary" style="padding:6px 10px; margin-bottom:0; font-size:11px; width:auto;" onclick="approveUser('${u.badge}')">APPROVE</button>
+                                <button type="button" class="btn-danger" style="padding:6px 10px; margin-bottom:0; font-size:11px; width:auto;" onclick="deleteUserAccount('${u.badge}')">DELETE</button>
                             </div>
                         </div>
                     `;
@@ -1279,7 +1184,7 @@
 
             const ranksList = ["Officer", "Corporal", "Sergeant", "Lieutenant", "Captain", "Assistant Chief", "Chief of Police"];
 
-            users.forEach((u, idx) => {
+            users.forEach((u) => {
                 const div = document.createElement('div');
                 div.style.cssText = "padding:12px; background:var(--bg-color); border-radius:8px; margin-bottom:12px; border:1px solid var(--border-color); font-size:12px;";
                 
@@ -1318,59 +1223,62 @@
                         </div>
                         <label style="font-size:9px;">Emergency Contact</label>
                         <input type="text" id="emerg-${u.badge}" value="${u.emergency || ''}" style="padding:4px; margin-bottom:6px;">
-                        <button class="btn-primary" style="background:var(--admin-gold); padding:6px; margin-bottom:0; font-size:10px;" onclick="updateUserDetails('${u.badge}')">SAVE DETAILS</button>
-                    </div>
-
-                    <div style="background:rgba(18,26,38,0.8); padding:8px; border-radius:6px; margin-bottom:10px;">
-                        <div style="font-size:10px; color:var(--admin-gold); margin-bottom:6px; font-weight:bold;">MANAGE PTO BALANCES</div>
-                        <div class="grid-3">
-                            <div>
-                                <label style="font-size:9px;">Vacation</label>
-                                <input type="number" id="vac-${u.badge}" value="${u.vacation}" style="padding:4px; margin-bottom:0;">
-                            </div>
-                            <div>
-                                <label style="font-size:9px;">Personal</label>
-                                <input type="number" id="per-${u.badge}" value="${u.personal}" style="padding:4px; margin-bottom:0;">
-                            </div>
-                            <div>
-                                <label style="font-size:9px;">Comp Hrs</label>
-                                <input type="number" id="cmp-${u.badge}" value="${u.comp}" style="padding:4px; margin-bottom:0;">
-                            </div>
-                        </div>
-                        <div style="display:flex; gap:6px; margin-top:8px;">
-                            <button class="btn-primary" style="background:var(--admin-gold); padding:6px; margin-bottom:0; font-size:10px;" onclick="updateUserBalances('${u.badge}')">SAVE BALANCES</button>
-                            <button class="btn-secondary" style="padding:6px; margin-bottom:0; font-size:10px;" onclick="promptDirectEdit('${u.badge}')">⚡ DIRECT EDIT</button>
-                        </div>
+                        <button type="button" class="btn-primary" style="background:var(--admin-gold); padding:6px; margin-bottom:0; font-size:10px;" onclick="updateUserDetails('${u.badge}')">SAVE DETAILS</button>
                     </div>
 
                     <div style="display:flex; gap:6px;">
-                        ${u.status === 'pending' ? `<button class="btn-primary" style="padding:6px; font-size:11px;" onclick="approveUser(${idx})">Approve Officer</button>` : ''}
-                        ${isMainAdmin ? '<span style="font-size:10px; color:var(--admin-gold); align-self:center; font-family:monospace;">🔒 Primary Admin</span>' : `<button class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower(${idx})">${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}</button>`}
-                        ${!isMainAdmin ? `<button class="btn-danger" style="padding:6px 10px; font-size:11px; width:auto;" onclick="deleteUserAccount('${u.badge}')">🗑️ Delete Account</button>` : ''}
+                        ${u.status === 'pending' ? `<button type="button" class="btn-primary" style="padding:6px; font-size:11px;" onclick="approveUser('${u.badge}')">Approve Officer</button>` : ''}
+                        ${isMainAdmin ? '<span style="font-size:10px; color:var(--admin-gold); align-self:center; font-family:monospace;">🔒 Primary Admin</span>' : `<button type="button" class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower('${u.badge}')">${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}</button>`}
+                        ${!isMainAdmin ? `<button type="button" class="btn-danger" style="padding:6px 10px; font-size:11px; width:auto;" onclick="deleteUserAccount('${u.badge}')">🗑️ Delete Account</button>` : ''}
                     </div>
                 `;
                 container.appendChild(div);
             });
         }
 
-        function deleteUserAccount(badgeId) {
+        async function approveUser(badgeId) {
+            const u = users.find(x => x.badge === badgeId);
+            if (u) {
+                u.status = 'approved';
+                await saveKeyToCloud('cpd_users', users);
+                renderAdminUserList();
+                populateAdminUserDropdown();
+                alert(`Officer #${u.badge} (${u.name}) has been approved!`);
+            }
+        }
+
+        async function toggleAdminPower(badgeId) {
+            if (badgeId === "23-22") {
+                alert("Security Warning: Primary admin privileges cannot be revoked.");
+                return;
+            }
+            const u = users.find(x => x.badge === badgeId);
+            if (u) {
+                u.isAdmin = !u.isAdmin;
+                await saveKeyToCloud('cpd_users', users);
+                renderAdminUserList();
+                alert(`Updated admin status for ${u.name}.`);
+            }
+        }
+
+        async function deleteUserAccount(badgeId) {
             if (badgeId === "23-22") {
                 alert("Cannot delete the primary admin account.");
                 return;
             }
 
-            if (!confirm(`Are you sure you want to completely delete account #${badgeId}? This will free up the unit/badge number so a new registration can be submitted with it.`)) {
+            if (!confirm(`Are you sure you want to completely delete account #${badgeId}?`)) {
                 return;
             }
 
             users = users.filter(u => u.badge !== badgeId);
-            saveUsers();
+            await saveKeyToCloud('cpd_users', users);
             renderAdminUserList();
             populateAdminUserDropdown();
-            alert(`Account #${badgeId} has been deleted and the unit number is now free to reuse.`);
+            alert(`Account #${badgeId} has been deleted.`);
         }
 
-        function updateUserDetails(oldBadgeId) {
+        async function updateUserDetails(oldBadgeId) {
             const u = users.find(x => x.badge === oldBadgeId);
             if (!u) return;
 
@@ -1398,112 +1306,34 @@
                 u.badge = newBadgeId;
             }
 
-            saveUsers();
+            await saveKeyToCloud('cpd_users', users);
             renderAdminUserList();
             populateAdminUserDropdown();
-
-            if (currentUser && currentUser.badge === oldBadgeId) {
-                currentUser = u;
-                localStorage.setItem('cpd_active_badge', currentUser.badge);
-                setupUserSession();
-            }
-
-            alert(`Updated profile details for Officer!`);
+            alert("Updated profile details successfully!");
         }
 
-        function updateUserBalances(badgeId) {
-            const u = users.find(x => x.badge === badgeId);
-            if (!u) return;
+        async function saveProfileChanges() {
+            const newName = document.getElementById('edit-user-name').value.trim();
+            const newPhone = document.getElementById('edit-user-phone').value.trim();
+            const newEmergency = document.getElementById('edit-user-emergency').value.trim();
+            const newPass = document.getElementById('edit-user-pass').value.trim();
 
-            const vacInput = document.getElementById(`vac-${badgeId}`);
-            const perInput = document.getElementById(`per-${badgeId}`);
-            const cmpInput = document.getElementById(`cmp-${badgeId}`);
-
-            if (vacInput) u.vacation = parseInt(vacInput.value) || 0;
-            if (perInput) u.personal = parseInt(perInput.value) || 0;
-            if (cmpInput) u.comp = parseInt(cmpInput.value) || 0;
-
-            saveUsers();
-            
-            if (currentUser && currentUser.badge === badgeId) {
-                currentUser.vacation = u.vacation;
-                currentUser.personal = u.personal;
-                currentUser.comp = u.comp;
-                document.getElementById('bal-vacation').innerText = u.vacation;
-                document.getElementById('bal-personal').innerText = u.personal;
-                document.getElementById('bal-comp').innerText = u.comp;
-            }
-
-            alert(`Updated time-off balances for Officer #${badgeId}!`);
-        }
-
-        function promptDirectEdit(badgeId) {
-            const u = users.find(x => x.badge === badgeId);
-            if (!u) return;
-
-            const newVac = prompt(`Enter new Vacation Days for Officer #${badgeId}:`, u.vacation);
-            if (newVac === null) return;
-
-            const newPer = prompt(`Enter new Personal Days for Officer #${badgeId}:`, u.personal);
-            if (newPer === null) return;
-
-            const newCmp = prompt(`Enter new Comp Hours for Officer #${badgeId}:`, u.comp);
-            if (newCmp === null) return;
-
-            u.vacation = parseInt(newVac) || 0;
-            u.personal = parseInt(newPer) || 0;
-            u.comp = parseInt(newCmp) || 0;
-
-            saveUsers();
-            renderAdminUserList();
-
-            if (currentUser && currentUser.badge === badgeId) {
-                currentUser.vacation = u.vacation;
-                currentUser.personal = u.personal;
-                currentUser.comp = u.comp;
-                document.getElementById('bal-vacation').innerText = u.vacation;
-                document.getElementById('bal-personal').innerText = u.personal;
-                document.getElementById('bal-comp').innerText = u.comp;
-            }
-
-            alert(`Successfully updated PTO balances for Officer #${badgeId}!`);
-        }
-
-        function approveUser(index) {
-            loadFromStorage();
-            users[index].status = 'approved';
-            saveUsers();
-            renderAdminUserList();
-            populateAdminUserDropdown();
-            alert(`Officer #${users[index].badge} (${users[index].name}) has been approved!`);
-        }
-
-        function toggleAdminPower(index) {
-            loadFromStorage();
-            if (users[index].badge === "23-22") {
-                alert("Security Warning: Primary admin privileges cannot be revoked.");
-                return;
-            }
-            users[index].isAdmin = !users[index].isAdmin;
-            saveUsers();
-            renderAdminUserList();
-            alert(`Updated admin status for ${users[index].name}.`);
-        }
-
-        function requestNotificationPermission() {
-            if (!("Notification" in window)) {
-                alert("This browser does not support notifications.");
+            if (!newName || !newPass) {
+                alert("Name and Password cannot be empty.");
                 return;
             }
 
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    alert("Notification permissions granted successfully!");
-                    new Notification("Covington PD", { body: "Notifications are active." });
-                } else {
-                    alert("Notification permission was denied in your browser settings.");
-                }
-            });
+            currentUser.name = newName;
+            currentUser.phone = newPhone;
+            currentUser.emergency = newEmergency;
+            currentUser.pass = newPass;
+
+            const idx = users.findIndex(u => u.badge === currentUser.badge);
+            if (idx !== -1) users[idx] = currentUser;
+
+            await saveKeyToCloud('cpd_users', users);
+            setupUserSession();
+            alert("Account details updated successfully!");
         }
 
         function switchTab(tabId, el) {
@@ -1514,7 +1344,7 @@
             el.classList.add('active');
 
             if (tabId === 'admin') {
-                renderAdminUserList();
+                syncFromCloud();
             }
         }
     </script>
