@@ -893,10 +893,11 @@
             });
         }
 
-        // Helper to convert base64 VAPID string into a proper Uint8Array byte array for browser Push API compliance
+        // Hardened sanitizing helper to clean whitespace/newlines and format VAPID key into a Uint8Array
         function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-            const base64 = (base64String + padding)
+            const sanitized = base64String.replace(/\s+/g, '');
+            const padding = '='.repeat((4 - (sanitized.length % 4)) % 4);
+            const base64 = (sanitized + padding)
                 .replace(/-/g, '+')
                 .replace(/_/g, '/');
 
@@ -932,7 +933,6 @@
 
                             console.log('Service Worker registered successfully:', registration.scope);
 
-                            // Format VAPID key into a Uint8Array P-256 public key
                             const applicationServerKey = urlBase64ToUint8Array(VAPID_KEY);
 
                             const token = await messaging.getToken({
