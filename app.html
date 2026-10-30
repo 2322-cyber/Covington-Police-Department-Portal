@@ -597,7 +597,11 @@
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
                 <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls synced in real-time via Firebase Realtime Database.</p>
-                <button type="button" class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px;" onclick="syncFromCloudSilent()">🔄 REFRESH FROM CLOUD</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px; margin-bottom:0;" onclick="syncFromCloudSilent()">🔄 REFRESH FROM CLOUD</button>
+                    <button type="button" class="btn-danger" style="font-size: 11px; padding: 10px; margin-bottom:0;" onclick="adminClearChat()">🗑️ CLEAR CHATS</button>
+                    <button type="button" class="btn-danger" style="font-size: 11px; padding: 10px; margin-bottom:0;" onclick="adminClearNotices()">🗑️ CLEAR NOTICES</button>
+                </div>
             </div>
 
             <!-- DEDICATED PENDING APPROVALS SECTION -->
@@ -835,25 +839,35 @@
             dbRef.on('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
-                    if (data.cpd_chat_msgs && JSON.stringify(chatMessages) !== JSON.stringify(data.cpd_chat_msgs)) {
-                        const oldLen = chatMessages.length;
-                        chatMessages = data.cpd_chat_msgs;
-                        renderChat();
-                        if (data.cpd_chat_msgs.length > oldLen) {
-                            const latest = data.cpd_chat_msgs[data.cpd_chat_msgs.length - 1];
-                            if (currentUser && latest.author !== `${currentUser.rank} ${currentUser.name}`) {
-                                triggerDeviceNotification("CPD Chat", `${latest.author}: ${latest.text}`, "chat");
+                    if (data.cpd_chat_msgs) {
+                        if (JSON.stringify(chatMessages) !== JSON.stringify(data.cpd_chat_msgs)) {
+                            const oldLen = chatMessages.length;
+                            chatMessages = data.cpd_chat_msgs;
+                            renderChat();
+                            if (data.cpd_chat_msgs.length > oldLen) {
+                                const latest = data.cpd_chat_msgs[data.cpd_chat_msgs.length - 1];
+                                if (currentUser && latest.author !== `${currentUser.rank} ${currentUser.name}`) {
+                                    triggerDeviceNotification("CPD Chat", `${latest.author}: ${latest.text}`, "chat");
+                                }
                             }
                         }
+                    } else {
+                        chatMessages = [];
+                        renderChat();
                     }
 
-                    if (data.cpd_notices && JSON.stringify(notices) !== JSON.stringify(data.cpd_notices)) {
-                        const oldLen = notices.length;
-                        notices = data.cpd_notices;
-                        renderNotices();
-                        if (data.cpd_notices.length > oldLen) {
-                            triggerDeviceNotification("CPD Announcement", data.cpd_notices[0].title, "announcements");
+                    if (data.cpd_notices) {
+                        if (JSON.stringify(notices) !== JSON.stringify(data.cpd_notices)) {
+                            const oldLen = notices.length;
+                            notices = data.cpd_notices;
+                            renderNotices();
+                            if (data.cpd_notices.length > oldLen) {
+                                triggerDeviceNotification("CPD Announcement", data.cpd_notices[0].title, "announcements");
+                            }
                         }
+                    } else {
+                        notices = [];
+                        renderNotices();
                     }
 
                     if (data.cpd_users && JSON.stringify(users) !== JSON.stringify(data.cpd_users)) {
@@ -896,11 +910,14 @@
                     if ('serviceWorker' in navigator && messaging) {
                         navigator.serviceWorker.register('firebase-messaging-sw.js')
                             .then(registration => {
-                                console.log('Service Worker registered with scope:', registration.scope);
+                                console.log('Service Worker registered:', registration.scope);
                                 return messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
                             })
                             .then(token => {
                                 console.log('FCM Token generated:', token);
+                                if (token && currentUser) {
+                                    firebase.database().ref(`cpd_tokens/${currentUser.badge}`).set(token);
+                                }
                             })
                             .catch(err => {
                                 console.error('Service Worker / FCM setup error:', err);
@@ -949,8 +966,10 @@
                 if (data) {
                     if (data.cpd_users) users = data.cpd_users;
                     if (data.cpd_notices) notices = data.cpd_notices;
+                    else notices = [];
                     if (data.cpd_chat_channels) chatChannels = data.cpd_chat_channels;
                     if (data.cpd_chat_msgs) chatMessages = data.cpd_chat_msgs;
+                    else chatMessages = [];
                     if (data.cpd_schedule) scheduleData = data.cpd_schedule;
                 }
             } catch (err) {
@@ -972,6 +991,29 @@
             } catch (err) {
                 console.error("Firebase save error:", err);
             }
+        }
+
+        // ==========================================
+        // ADMIN CLEAR UTILITIES
+        // ==========================================
+        async function adminClearChat() {
+            if (!currentUser || !currentUser.isAdmin) return;
+            if (!confirm("Are you sure you want to clear all chat messages across all channels?")) return;
+            
+            chatMessages = [];
+            await saveKeyToCloud('cpd_chat_msgs', null);
+            renderChat();
+            alert("All chat messages have been cleared.");
+        }
+
+        async function adminClearNotices() {
+            if (!currentUser || !currentUser.isAdmin) return;
+            if (!confirm("Are you sure you want to clear all department announcements?")) return;
+
+            notices = [];
+            await saveKeyToCloud('cpd_notices', null);
+            renderNotices();
+            alert("All announcements have been cleared.");
         }
 
         async function handleLogin() {
@@ -1345,6 +1387,10 @@
         function renderNotices() {
             const list = document.getElementById('notices-list');
             list.innerHTML = '';
+            if (!notices || notices.length === 0) {
+                list.innerHTML = '<div class="card" style="color:var(--text-secondary);">No current department announcements.</div>';
+                return;
+            }
             notices.forEach(n => {
                 const card = document.createElement('div');
                 card.className = 'card';
