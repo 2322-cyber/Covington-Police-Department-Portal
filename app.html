@@ -770,7 +770,7 @@
             measurementId: "G-E2Q473WCF1"
         };
 
-        const VAPID_KEY = "BMVXpeBIZrswE8vM-wUYqXDvssaLnK7Q4rbwXakoWHHwevvsbs2ezEDsZn2o-_GoNXkbfcNdmLEt1XGoOsyEB7k";
+        const VAPID_KEY = "BMVXpeBIZrswE8vM-wUYqXDvssaLnK7Q4rbwXakoWHHwevvsbs2ezEDsZn2o-_GoNXkbfcNdmlEt1XGoOsyEB7k";
 
         // Initialize Firebase
         if (!firebase.apps.length) {
@@ -893,7 +893,7 @@
             });
         }
 
-        // Hardened sanitizing helper to clean whitespace/newlines and format VAPID key into a Uint8Array
+        // Helper to convert base64 VAPID string into a proper Uint8Array byte array for browser Push API compliance
         function urlBase64ToUint8Array(base64String) {
             const sanitized = base64String.replace(/\s+/g, '');
             const padding = '='.repeat((4 - (sanitized.length % 4)) % 4);
