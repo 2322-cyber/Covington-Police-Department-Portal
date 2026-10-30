@@ -13,7 +13,6 @@
             --bg-color: #05080d;
             --card-bg: #121a26;
             --cyber-blue: #00d9ff;
-            --cyber-blue-dark: #0066cc;
             --text-primary: #ffffff;
             --text-secondary: #94a3b8;
             --border-color: rgba(0, 217, 255, 0.3);
@@ -557,7 +556,7 @@
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
                 <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls for shift scheduling, group chat rooms, officer approvals, rank adjustments, unit numbers, and PTO balance management.</p>
-                <button class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px;" onclick="renderAdminUserList()">🔄 REFRESH PENDING LIST</button>
+                <button class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px;" onclick="renderAdminUserList()">🔄 FORCE REFRESH PENDING LIST</button>
             </div>
 
             <!-- PENDING ACCOUNT APPROVALS ALERT -->
@@ -700,6 +699,12 @@
     </nav>
 
     <script>
+        // HARD WIPE & CLEAN SLATE V3
+        if (!localStorage.getItem('cpd_clean_slate_v3')) {
+            localStorage.clear();
+            localStorage.setItem('cpd_clean_slate_v3', 'true');
+        }
+
         const DEFAULT_USERS = [
             {
                 badge: "23-22",
@@ -714,12 +719,6 @@
                 notifications: { announcements: true, chat: true, schedule: true }
             }
         ];
-
-        // PURGE OLD REQUESTS & RESET TO CLEAN SLATE
-        if (!localStorage.getItem('cpd_clean_slate_v2')) {
-            localStorage.clear();
-            localStorage.setItem('cpd_clean_slate_v2', 'true');
-        }
 
         let users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
         let notices = JSON.parse(localStorage.getItem('cpd_notices')) || [
@@ -737,7 +736,7 @@
         let currentCalendarDate = new Date();
 
         window.onload = function() {
-            users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
+            loadFromStorage();
 
             renderNotices();
             renderChatChannels();
@@ -759,8 +758,33 @@
             }
         };
 
+        // Listen for storage changes across tabs/devices
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'cpd_users') {
+                loadFromStorage();
+                if (currentUser && currentUser.isAdmin) {
+                    renderAdminUserList();
+                    populateAdminUserDropdown();
+                }
+            }
+        });
+
+        function loadFromStorage() {
+            const storedUsers = localStorage.getItem('cpd_users');
+            if (storedUsers) {
+                users = JSON.parse(storedUsers);
+            } else {
+                users = DEFAULT_USERS;
+                saveUsers();
+            }
+        }
+
+        function saveUsers() {
+            localStorage.setItem('cpd_users', JSON.stringify(users));
+        }
+
         function handleLogin() {
-            users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
+            loadFromStorage();
             const badge = document.getElementById('login-badge').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
 
@@ -787,7 +811,7 @@
         }
 
         function handleRegister() {
-            users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
+            loadFromStorage();
 
             const name = document.getElementById('reg-name').value.trim();
             const badge = document.getElementById('reg-badge').value.trim();
@@ -816,7 +840,7 @@
             users.push(newUser);
             saveUsers();
 
-            alert("Account request submitted! An administrator must approve your account before you can log in.");
+            alert("Account request submitted successfully! An administrator must approve your account before you can log in.");
             toggleAuthView(false);
         }
 
@@ -1065,6 +1089,7 @@
         }
 
         function populateAdminUserDropdown() {
+            loadFromStorage();
             const select = document.getElementById('admin-shift-user');
             if (!select) return;
             select.innerHTML = '<option value="ALL">ALL OFFICERS (Full Squad Training)</option>';
@@ -1104,7 +1129,6 @@
             });
 
             localStorage.setItem('cpd_schedule', JSON.stringify(scheduleData));
-            
             triggerSystemNotification("📅 Schedule Updated", `New shifts/training posted for ${selectedCalendarDays.size} day(s).`, "schedule");
 
             alert(`Shifts saved for ${selectedCalendarDays.size} day(s)!`);
@@ -1218,8 +1242,9 @@
             document.getElementById('new-notice-card').style.display = 'none';
         }
 
+        // REWORKED ADMIN RENDER & FORCE REFRESH FUNCTION
         function renderAdminUserList() {
-            users = JSON.parse(localStorage.getItem('cpd_users')) || DEFAULT_USERS;
+            loadFromStorage();
 
             const container = document.getElementById('users-management-list');
             const pendingCard = document.getElementById('pending-approvals-card');
@@ -1445,6 +1470,7 @@
         }
 
         function approveUser(index) {
+            loadFromStorage();
             users[index].status = 'approved';
             saveUsers();
             renderAdminUserList();
@@ -1453,6 +1479,7 @@
         }
 
         function toggleAdminPower(index) {
+            loadFromStorage();
             if (users[index].badge === "23-22") {
                 alert("Security Warning: Primary admin privileges cannot be revoked.");
                 return;
@@ -1489,10 +1516,6 @@
             if (tabId === 'admin') {
                 renderAdminUserList();
             }
-        }
-
-        function saveUsers() {
-            localStorage.setItem('cpd_users', JSON.stringify(users));
         }
     </script>
 </body>
