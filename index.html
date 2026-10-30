@@ -181,6 +181,59 @@
             font-weight: bold;
         }
 
+        /* Toggle Switch Styling */
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #1e293b;
+            transition: .3s;
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--cyber-blue);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+            background-color: #000;
+        }
+
         /* Navigation */
         nav {
             position: fixed;
@@ -335,12 +388,6 @@
             gap: 12px;
         }
 
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-        }
-
         .metric-card {
             text-align: center;
             padding: 15px;
@@ -411,7 +458,7 @@
             <div style="font-size: 60px; margin-bottom: 10px; text-shadow: 0 0 15px var(--cyber-blue);">🛡️</div>
             <h1 style="font-family: monospace; color: var(--cyber-blue); font-size: 20px;">COVINGTON POLICE DEPARTMENT</h1>
             <p style="color: var(--text-secondary); font-size: 13px; letter-spacing: 2px; font-family: monospace; margin-top: 6px;">Department Portal</p>
-            <p id="cloud-status" style="font-size: 10px; color: var(--success); margin-top: 4px; font-family: monospace;">☁️ CONNECTED TO SUPABASE</p>
+            <p id="cloud-status" style="font-size: 10px; color: var(--success); margin-top: 4px; font-family: monospace;">☁️ REALTIME CONNECTED</p>
         </div>
 
         <div class="card" id="login-box">
@@ -625,6 +672,38 @@
                 <div id="profile-info-body" style="font-size: 13px; line-height: 1.8;"></div>
             </div>
 
+            <!-- NOTIFICATION PREFERENCES TOGGLES -->
+            <div class="card">
+                <div class="card-title" style="margin-bottom: 12px;">🔔 NOTIFICATION SETTINGS</div>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;">Enable browser alerts and toggle alert preferences:</p>
+                
+                <button type="button" class="btn-primary" id="enable-notif-btn" onclick="requestNotificationPermission()" style="margin-bottom: 15px;">ENABLE DEVICE NOTIFICATIONS</button>
+
+                <div class="toggle-row">
+                    <span style="font-size: 12px; font-family: monospace;">📢 Post Announcements</span>
+                    <label class="switch">
+                        <input type="checkbox" id="notif-toggle-announcements" onchange="saveNotificationToggles()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-row">
+                    <span style="font-size: 12px; font-family: monospace;">💬 Chat Messages</span>
+                    <label class="switch">
+                        <input type="checkbox" id="notif-toggle-chat" onchange="saveNotificationToggles()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-row">
+                    <span style="font-size: 12px; font-family: monospace;">📅 Schedule Updates</span>
+                    <label class="switch">
+                        <input type="checkbox" id="notif-toggle-schedule" onchange="saveNotificationToggles()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-title" style="margin-bottom: 12px;">EDIT ACCOUNT DETAILS</div>
                 <label>Full Name</label>
@@ -674,7 +753,7 @@
         // ==========================================
         // SUPABASE CONFIGURATION
         // ==========================================
-        const SUPABASE_URL = "https://fjhftmtsssqmjgmsmawp.supabase.co";
+        const SUPABASE_URL = "https://fjhftsssqmjgmsmawp.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_uY3genS-6ZJj8KkKv5DVSw_J1HmMAdw";
 
         let dbClient = null;
@@ -715,19 +794,131 @@
         window.onload = async function() {
             const savedBadge = localStorage.getItem('cpd_active_badge');
             if (savedBadge) {
-                syncFromCloudSilent();
+                await syncFromCloudSilent();
                 const found = users.find(u => u.badge === savedBadge);
                 if (found && found.status === 'approved') {
                     currentUser = found;
                     document.getElementById('auth-overlay').style.display = 'none';
                     setupUserSession();
+                    setupRealtimeSubscription();
                     return;
                 }
             }
             
             document.getElementById('auth-overlay').style.display = 'flex';
             await syncFromCloudSilent();
+            setupRealtimeSubscription();
         };
+
+        // ==========================================
+        // REALTIME CLOUD SYNC & PUSH NOTIFICATIONS
+        // ==========================================
+        function setupRealtimeSubscription() {
+            if (!dbClient) return;
+
+            dbClient
+                .channel('public:portal_store')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'portal_store' }, payload => {
+                    if (payload.new) {
+                        const { key, value } = payload.new;
+                        let updated = false;
+
+                        if (key === 'cpd_chat_msgs' && JSON.stringify(chatMessages) !== JSON.stringify(value)) {
+                            const oldLen = chatMessages.length;
+                            chatMessages = value;
+                            renderChat();
+                            if (value.length > oldLen) {
+                                const latest = value[value.length - 1];
+                                if (currentUser && latest.author !== `${currentUser.rank} ${currentUser.name}`) {
+                                    triggerDeviceNotification("CPD Chat", `${latest.author}: ${latest.text}`, "chat");
+                                }
+                            }
+                            updated = true;
+                        }
+
+                        if (key === 'cpd_notices' && JSON.stringify(notices) !== JSON.stringify(value)) {
+                            const oldLen = notices.length;
+                            notices = value;
+                            renderNotices();
+                            if (value.length > oldLen) {
+                                triggerDeviceNotification("CPD Announcement", value[0].title, "announcements");
+                            }
+                            updated = true;
+                        }
+
+                        if (key === 'cpd_users' && JSON.stringify(users) !== JSON.stringify(value)) {
+                            users = value;
+                            if (currentUser && currentUser.isAdmin) {
+                                renderAdminUserList();
+                                populateAdminUserDropdown();
+                            }
+                            updated = true;
+                        }
+
+                        if (key === 'cpd_schedule' && JSON.stringify(scheduleData) !== JSON.stringify(value)) {
+                            scheduleData = value;
+                            renderCalendar();
+                            renderAdminCalendar();
+                            triggerDeviceNotification("CPD Schedule Update", "Duty schedule/shifts updated.", "schedule");
+                            updated = true;
+                        }
+
+                        if (key === 'cpd_chat_channels' && JSON.stringify(chatChannels) !== JSON.stringify(value)) {
+                            chatChannels = value;
+                            renderChatChannels();
+                            updated = true;
+                        }
+                    }
+                })
+                .subscribe();
+        }
+
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("This browser does not support desktop notifications.");
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                const btn = document.getElementById('enable-notif-btn');
+                if (permission === "granted") {
+                    btn.innerText = "✓ NOTIFICATIONS ENABLED";
+                    btn.style.background = "var(--success)";
+                    btn.style.color = "#000";
+                    alert("Notifications enabled! You will now receive live push alerts for squad updates.");
+                } else {
+                    btn.innerText = "❌ NOTIFICATIONS BLOCKED";
+                    btn.style.background = "var(--danger)";
+                    alert("Notification permissions blocked. Please update site settings in your browser.");
+                }
+            });
+        }
+
+        function triggerDeviceNotification(title, body, category) {
+            if (!currentUser || !currentUser.notifications) return;
+            if (currentUser.notifications[category] === false) return;
+
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: "https://cdn-icons-png.flaticon.com/512/1022/1022313.png"
+                });
+            }
+        }
+
+        function saveNotificationToggles() {
+            if (!currentUser) return;
+
+            if (!currentUser.notifications) currentUser.notifications = {};
+            currentUser.notifications.announcements = document.getElementById('notif-toggle-announcements').checked;
+            currentUser.notifications.chat = document.getElementById('notif-toggle-chat').checked;
+            currentUser.notifications.schedule = document.getElementById('notif-toggle-schedule').checked;
+
+            const idx = users.findIndex(u => u.badge === currentUser.badge);
+            if (idx !== -1) users[idx] = currentUser;
+
+            saveKeyToCloud('cpd_users', users);
+        }
 
         async function syncFromCloudSilent() {
             if (!dbClient) return;
@@ -834,6 +1025,22 @@
         function setupUserSession() {
             document.getElementById('header-user-info').innerText = `${currentUser.rank.toUpperCase()} • #${currentUser.badge}`;
             renderProfileCard();
+
+            if (!currentUser.notifications) {
+                currentUser.notifications = { announcements: true, chat: true, schedule: true };
+            }
+            document.getElementById('notif-toggle-announcements').checked = currentUser.notifications.announcements !== false;
+            document.getElementById('notif-toggle-chat').checked = currentUser.notifications.chat !== false;
+            document.getElementById('notif-toggle-schedule').checked = currentUser.notifications.schedule !== false;
+
+            if ("Notification" in window && Notification.permission === "granted") {
+                const btn = document.getElementById('enable-notif-btn');
+                if (btn) {
+                    btn.innerText = "✓ NOTIFICATIONS ENABLED";
+                    btn.style.background = "var(--success)";
+                    btn.style.color = "#000";
+                }
+            }
 
             document.getElementById('edit-user-name').value = currentUser.name;
             document.getElementById('edit-user-phone').value = currentUser.phone || '';
