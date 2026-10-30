@@ -753,7 +753,7 @@
         // ==========================================
         // SUPABASE CONFIGURATION
         // ==========================================
-        const SUPABASE_URL = "https://fjhftsssqmjgmsmawp.supabase.co";
+        const SUPABASE_URL = "https://fjhfmtsssqmjgmsmawp.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_uY3genS-6ZJj8KkKv5DVSw_J1HmMAdw";
 
         let dbClient = null;
@@ -821,7 +821,6 @@
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'portal_store' }, payload => {
                     if (payload.new) {
                         const { key, value } = payload.new;
-                        let updated = false;
 
                         if (key === 'cpd_chat_msgs' && JSON.stringify(chatMessages) !== JSON.stringify(value)) {
                             const oldLen = chatMessages.length;
@@ -833,7 +832,6 @@
                                     triggerDeviceNotification("CPD Chat", `${latest.author}: ${latest.text}`, "chat");
                                 }
                             }
-                            updated = true;
                         }
 
                         if (key === 'cpd_notices' && JSON.stringify(notices) !== JSON.stringify(value)) {
@@ -843,7 +841,6 @@
                             if (value.length > oldLen) {
                                 triggerDeviceNotification("CPD Announcement", value[0].title, "announcements");
                             }
-                            updated = true;
                         }
 
                         if (key === 'cpd_users' && JSON.stringify(users) !== JSON.stringify(value)) {
@@ -852,7 +849,6 @@
                                 renderAdminUserList();
                                 populateAdminUserDropdown();
                             }
-                            updated = true;
                         }
 
                         if (key === 'cpd_schedule' && JSON.stringify(scheduleData) !== JSON.stringify(value)) {
@@ -860,13 +856,11 @@
                             renderCalendar();
                             renderAdminCalendar();
                             triggerDeviceNotification("CPD Schedule Update", "Duty schedule/shifts updated.", "schedule");
-                            updated = true;
                         }
 
                         if (key === 'cpd_chat_channels' && JSON.stringify(chatChannels) !== JSON.stringify(value)) {
                             chatChannels = value;
                             renderChatChannels();
-                            updated = true;
                         }
                     }
                 })
