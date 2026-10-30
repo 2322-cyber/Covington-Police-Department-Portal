@@ -917,7 +917,7 @@
                             console.log('Service Worker registered successfully:', registration.scope);
 
                             const token = await messaging.getToken({
-                                vapidKey: "BMVXpeBIZrswE8vM-wUYqXDvssaLnK7Q4rbwXakoWHHwevvsbs2ezEDsZn2o-_GoNXkbfcNdmLEt1XGoOsyEB7k",
+                                vapidKey: VAPID_KEY,
                                 serviceWorkerRegistration: registration
                             });
 
