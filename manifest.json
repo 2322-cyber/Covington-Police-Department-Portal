@@ -1,0 +1,15 @@
+{
+  "name": "Covington Police Department",
+  "short_name": "Covington PD",
+  "start_url": "/Covington-Police-Department-Portal/",
+  "display": "standalone",
+  "background_color": "#05080d",
+  "theme_color": "#00d9ff",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1022/1022313.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
