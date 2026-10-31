@@ -8,22 +8,11 @@
     <meta name="apple-mobile-web-app-title" content="Covington PD">
     <title>Covington Police Department</title>
     
-    <!-- Firebase SDK Compat Libraries (For Realtime Database Sync) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <!-- PWA Manifest for Mobile Web App Support -->
+    <link rel="manifest" href="./manifest.json">
 
-    <!-- OneSignal Web SDK for Reliable Web Push Notifications -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "ad8183dd-3bf0-4cc1-b195-904469254353",[cite: 5]
-          serviceWorkerPath: "Covington-Police-Department-Portal/OneSignalSDKWorker.js",
-          serviceWorkerParam: { scope: "/Covington-Police-Department-Portal/" }
-        });
-      });
-    </script>
+    <!-- Supabase JS Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         :root {
@@ -472,7 +461,7 @@
             <div style="font-size: 60px; margin-bottom: 10px; text-shadow: 0 0 15px var(--cyber-blue);">🛡️</div>
             <h1 style="font-family: monospace; color: var(--cyber-blue); font-size: 20px;">COVINGTON POLICE DEPARTMENT</h1>
             <p style="color: var(--text-secondary); font-size: 13px; letter-spacing: 2px; font-family: monospace; margin-top: 6px;">Department Portal</p>
-            <p id="cloud-status" style="font-size: 10px; color: var(--success); margin-top: 4px; font-family: monospace;">🔥 FIREBASE REALTIME CONNECTED</p>
+            <p id="cloud-status" style="font-size: 10px; color: var(--success); margin-top: 4px; font-family: monospace;">⚡ SUPABASE POSTGRES CONNECTED</p>
         </div>
 
         <div class="card" id="login-box">
@@ -608,7 +597,7 @@
         <section id="tab-admin" class="tab-content">
             <div class="card" style="border-color: var(--admin-gold);">
                 <div class="card-title" style="margin-bottom: 12px; color: var(--admin-gold);">⚙️ COMMAND STAFF ADMINISTRATION</div>
-                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls synced in real-time via Firebase Realtime Database.</p>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 15px;">Full administrative controls synced via Supabase Realtime.</p>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button type="button" class="btn-primary" style="background: var(--admin-gold); color: #000; font-size: 11px; padding: 10px; margin-bottom:0; flex: 1;" onclick="syncFromCloudSilent()">🔄 REFRESH</button>
                     <button type="button" class="btn-danger" style="font-size: 11px; padding: 10px; margin-bottom:0; flex: 1;" onclick="adminClearChat()">🗑️ CLEAR CHATS</button>
@@ -769,49 +758,18 @@
 
     <script>
         // ==========================================
-        // FIREBASE CONFIGURATION (Database Sync Only)
+        // SUPABASE CONFIGURATION & CLIENT
         // ==========================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyCgDQc7WQQZo78o0CAwdJGweaKP6x02BaM",
-            authDomain: "covington-pd-cc4cb.firebaseapp.com",
-            databaseURL: "https://covington-pd-cc4cb-default-rtdb.firebaseio.com",
-            projectId: "covington-pd-cc4cb",
-            storageBucket: "covington-pd-cc4cb.firebasestorage.app",
-            messagingSenderId: "350585131681",
-            appId: "1:350585131681:web:b98b322b23b6cf4135d6e0",
-            measurementId: "G-E2Q473WCF1"
-        };
+        const SUPABASE_URL = "https://pnsrwtsqfqjjmollbtyr.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuc3J3dHNxZnFqam1vbGxidHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MDEzMTUsImV4cCI6MjEwODk3NzMxNX0.5yDtUqJtWP2WLk_fCbGk5bE4GhyWR34eTaGDUvz7QRk";
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const dbRef = firebase.database().ref();
-
-        const DEFAULT_USERS = [
-            {
-                badge: "23-22",
-                name: "Admin Officer",
-                rank: "Chief of Police",
-                pass: "admin123",
-                phone: "(765) 555-0199",
-                emergency: "Dispatch / Shift Captain",
-                status: "approved",
-                isAdmin: true,
-                vacation: 20, personal: 5, comp: 40,
-                notifications: { announcements: true, chat: true, schedule: true }
-            }
-        ];
-
-        let users = DEFAULT_USERS;
-        let notices = [
-            { id: 1, title: "MANDATORY BRIEFING", body: "All shift leads report to dispatch at 07:00.", author: "Chief of Police", urgent: true }
-        ];
+        let users = [];
+        let notices = [];
         let chatChannels = ["General Squad", "Shift A Patrol", "Command Staff"];
         let activeChannel = chatChannels[0];
-        let chatMessages = [
-            { channel: "General Squad", author: "Chief of Police", text: "Welcome to the new Covington PD portal chat!" }
-        ];
+        let chatMessages = [];
         let scheduleData = {};
 
         let currentUser = null;
@@ -819,120 +777,123 @@
         let currentCalendarDate = new Date();
 
         window.onload = async function() {
+            await syncFromCloudSilent();
+            
             const savedBadge = localStorage.getItem('cpd_active_badge');
             if (savedBadge) {
-                await syncFromCloudSilent();
                 const found = users.find(u => u.badge === savedBadge);
                 if (found && found.status === 'approved') {
                     currentUser = found;
                     document.getElementById('auth-overlay').style.display = 'none';
                     setupUserSession();
-                    setupRealtimeSubscription();
-                    return;
                 }
             }
             
-            document.getElementById('auth-overlay').style.display = 'flex';
-            await syncFromCloudSilent();
-            setupRealtimeSubscription();
+            setupSupabaseRealtime();
         };
 
         // ==========================================
-        // REALTIME CLOUD SYNC & PUSH LISTENERS
+        // SUPABASE REALTIME WEBSOCKET LISTENERS
         // ==========================================
-        function setupRealtimeSubscription() {
-            dbRef.on('value', snapshot => {
-                const data = snapshot.val();
-                if (data) {
-                    if (data.cpd_chat_msgs) {
-                        if (JSON.stringify(chatMessages) !== JSON.stringify(data.cpd_chat_msgs)) {
-                            const oldLen = chatMessages.length;
-                            chatMessages = data.cpd_chat_msgs;
-                            renderChat();
-                            if (chatMessages.length > oldLen) {
-                                const latest = chatMessages[chatMessages.length - 1];
-                                if (currentUser && latest.author !== `${currentUser.rank} ${currentUser.name}`) {
-                                    triggerDeviceNotification(`💬 [${latest.channel || "General"}] ${latest.author}`, latest.text, "chat");
-                                }
-                            }
-                        }
-                    } else {
-                        chatMessages = [];
-                        renderChat();
+        function setupSupabaseRealtime() {
+            supabase
+                .channel('cpd-live-channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'cpd_chat_msgs' }, payload => {
+                    fetchChatMessages();
+                    if (payload.eventType === 'INSERT' && currentUser && payload.new.author !== `${currentUser.rank} ${currentUser.name}`) {
+                        triggerDeviceNotification(`💬 [${payload.new.channel}] ${payload.new.author}`, payload.new.text, "chat");
                     }
-
-                    if (data.cpd_notices) {
-                        if (JSON.stringify(notices) !== JSON.stringify(data.cpd_notices)) {
-                            const oldLen = notices.length;
-                            notices = data.cpd_notices;
-                            renderNotices();
-                            if (notices.length > oldLen) {
-                                triggerDeviceNotification("📢 New CPD Announcement", notices[0].title, "announcements");
-                            }
-                        }
-                    } else {
-                        notices = [];
-                        renderNotices();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'cpd_notices' }, payload => {
+                    fetchNotices();
+                    if (payload.eventType === 'INSERT') {
+                        triggerDeviceNotification("📢 New CPD Announcement", payload.new.title, "announcements");
                     }
-
-                    if (data.cpd_users && JSON.stringify(users) !== JSON.stringify(data.cpd_users)) {
-                        users = data.cpd_users;
-                        if (currentUser && currentUser.isAdmin) {
-                            renderAdminUserList();
-                            populateAdminUserDropdown();
-                        }
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'cpd_users' }, payload => {
+                    fetchUsers();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'cpd_schedule' }, payload => {
+                    fetchSchedule();
+                    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                        triggerDeviceNotification("📅 CPD Schedule Updated", "New shift assignments have been posted.", "schedule");
                     }
-
-                    if (data.cpd_schedule && JSON.stringify(scheduleData) !== JSON.stringify(data.cpd_schedule)) {
-                        scheduleData = data.cpd_schedule;
-                        renderCalendar();
-                        renderAdminCalendar();
-                        triggerDeviceNotification("📅 CPD Schedule Updated", "New duty shifts have been assigned.", "schedule");
-                    }
-
-                    if (data.cpd_chat_channels && JSON.stringify(chatChannels) !== JSON.stringify(data.cpd_chat_channels)) {
-                        chatChannels = data.cpd_chat_channels;
-                        renderChatChannels();
-                    }
-                }
-            });
+                })
+                .subscribe();
         }
 
         // ==========================================
-        // ONESIGNAL NOTIFICATION PERMISSIONS
+        // FETCH HELPERS FROM SUPABASE
+        // ==========================================
+        async function syncFromCloudSilent() {
+            await Promise.all([
+                fetchUsers(),
+                fetchNotices(),
+                fetchChatMessages(),
+                fetchSchedule()
+            ]);
+            renderNotices();
+            renderChatChannels();
+            renderCalendar();
+            renderAdminCalendar();
+            if (currentUser && currentUser.isAdmin) {
+                renderAdminUserList();
+                populateAdminUserDropdown();
+            }
+        }
+
+        async function fetchUsers() {
+            const { data, error } = await supabase.from('cpd_users').select('*');
+            if (!error && data) users = data;
+        }
+
+        async function fetchNotices() {
+            const { data, error } = await supabase.from('cpd_notices').select('*').order('id', { ascending: false });
+            if (!error && data) notices = data;
+            renderNotices();
+        }
+
+        async function fetchChatMessages() {
+            const { data, error } = await supabase.from('cpd_chat_msgs').select('*').order('id', { ascending: true });
+            if (!error && data) chatMessages = data;
+            renderChat();
+        }
+
+        async function fetchSchedule() {
+            const { data, error } = await supabase.from('cpd_schedule').select('*');
+            if (!error && data) {
+                scheduleData = {};
+                data.forEach(row => {
+                    scheduleData[row.day_key] = row.entries;
+                });
+            }
+            renderCalendar();
+            renderAdminCalendar();
+        }
+
+        // ==========================================
+        // BROWSER NOTIFICATIONS
         // ==========================================
         function requestNotificationPermission() {
-            if (!window.OneSignalDeferred) {
-                alert("OneSignal SDK is loading, please try again in a moment.");
+            if (!("Notification" in window)) {
+                alert("This browser does not support desktop notifications.");
                 return;
             }
 
-            OneSignalDeferred.push(async function(OneSignal) {
-                try {
-                    await OneSignal.Notifications.requestPermission();
-                    
-                    const btn = document.getElementById('enable-notif-btn');
-                    if (Notification.permission === "granted") {
-                        if (btn) {
-                            btn.innerText = "✓ NOTIFICATIONS ENABLED";
-                            btn.style.background = "var(--success)";
-                            btn.style.color = "#000";
-                        }
-
-                        if (currentUser) {
-                            await OneSignal.User.addTag("badge", currentUser.badge);
-                            await OneSignal.User.addTag("rank", currentUser.rank);
-                        }
-                        alert("Device notifications successfully enabled via OneSignal!");
-                    } else {
-                        if (btn) {
-                            btn.innerText = "❌ NOTIFICATIONS BLOCKED";
-                            btn.style.background = "var(--danger)";
-                        }
+            Notification.requestPermission().then(permission => {
+                const btn = document.getElementById('enable-notif-btn');
+                if (permission === "granted") {
+                    if (btn) {
+                        btn.innerText = "✓ NOTIFICATIONS ENABLED";
+                        btn.style.background = "var(--success)";
+                        btn.style.color = "#000";
                     }
-                } catch (err) {
-                    console.error("OneSignal Error:", err);
-                    alert("Notification setup failed: " + err.message);
+                    alert("Browser notifications enabled successfully!");
+                } else {
+                    if (btn) {
+                        btn.innerText = "❌ NOTIFICATIONS BLOCKED";
+                        btn.style.background = "var(--danger)";
+                    }
                 }
             });
         }
@@ -949,75 +910,37 @@
             }
         }
 
-        function saveNotificationToggles() {
+        async function saveNotificationToggles() {
             if (!currentUser) return;
-
             if (!currentUser.notifications) currentUser.notifications = {};
             currentUser.notifications.announcements = document.getElementById('notif-toggle-announcements').checked;
             currentUser.notifications.chat = document.getElementById('notif-toggle-chat').checked;
             currentUser.notifications.schedule = document.getElementById('notif-toggle-schedule').checked;
 
-            const idx = users.findIndex(u => u.badge === currentUser.badge);
-            if (idx !== -1) users[idx] = currentUser;
-
-            saveKeyToCloud('cpd_users', users);
-        }
-
-        async function syncFromCloudSilent() {
-            try {
-                const snapshot = await dbRef.once('value');
-                const data = snapshot.val();
-                if (data) {
-                    if (data.cpd_users) users = data.cpd_users;
-                    if (data.cpd_notices) notices = data.cpd_notices;
-                    else notices = [];
-                    if (data.cpd_chat_channels) chatChannels = data.cpd_chat_channels;
-                    if (data.cpd_chat_msgs) chatMessages = data.cpd_chat_msgs;
-                    else chatMessages = [];
-                    if (data.cpd_schedule) scheduleData = data.cpd_schedule;
-                }
-            } catch (err) {
-                console.error("Firebase sync error:", err);
-            }
-            renderNotices();
-            renderChatChannels();
-            renderCalendar();
-            renderAdminCalendar();
-            if (currentUser && currentUser.isAdmin) {
-                renderAdminUserList();
-                populateAdminUserDropdown();
-            }
-        }
-
-        async function saveKeyToCloud(key, value) {
-            try {
-                await firebase.database().ref(key).set(value);
-            } catch (err) {
-                console.error("Firebase save error:", err);
-            }
+            await supabase.from('cpd_users').update({ notifications: currentUser.notifications }).eq('badge', currentUser.badge);
         }
 
         // ==========================================
-        // ADMIN CLEAR UTILITIES
+        // ADMIN & USER ACTIONS
         // ==========================================
         async function adminClearChat() {
             if (!currentUser || !currentUser.isAdmin) return;
-            if (!confirm("Are you sure you want to clear all chat messages across all channels?")) return;
+            if (!confirm("Are you sure you want to clear all chat messages?")) return;
             
+            await supabase.from('cpd_chat_msgs').delete().neq('id', 0);
             chatMessages = [];
-            await saveKeyToCloud('cpd_chat_msgs', null);
             renderChat();
-            alert("All chat messages have been cleared.");
+            alert("All chat messages cleared.");
         }
 
         async function adminClearNotices() {
             if (!currentUser || !currentUser.isAdmin) return;
-            if (!confirm("Are you sure you want to clear all department announcements?")) return;
+            if (!confirm("Are you sure you want to clear all announcements?")) return;
 
+            await supabase.from('cpd_notices').delete().neq('id', 0);
             notices = [];
-            await saveKeyToCloud('cpd_notices', null);
             renderNotices();
-            alert("All announcements have been cleared.");
+            alert("All announcements cleared.");
         }
 
         async function handleLogin() {
@@ -1032,12 +955,11 @@
                 return;
             }
 
-            await syncFromCloudSilent();
-
+            await fetchUsers();
             const found = users.find(u => u.badge === badge && u.pass === pass);
 
             if (!found) {
-                alert("Invalid badge / unit number or password. Please check your credentials.");
+                alert("Invalid badge / unit number or password.");
                 return;
             }
 
@@ -1065,25 +987,27 @@
                 return;
             }
 
-            await syncFromCloudSilent();
-
+            await fetchUsers();
             if (users.find(u => u.badge === badge)) {
-                alert("An account or unit number with this badge/unit ID already exists.");
+                alert("An account with this badge/unit ID already exists.");
                 return;
             }
 
             const newUser = {
                 badge, name, rank, pass, phone: phone || "N/A", emergency: "N/A",
                 status: 'pending',
-                isAdmin: false,
+                is_admin: false,
                 vacation: 10, personal: 3, comp: 0,
                 notifications: { announcements: true, chat: true, schedule: true }
             };
 
-            users.push(newUser);
-            await saveKeyToCloud('cpd_users', users);
+            const { error } = await supabase.from('cpd_users').insert([newUser]);
+            if (error) {
+                alert("Registration failed: " + error.message);
+                return;
+            }
 
-            alert("Account request submitted successfully to Firebase! An administrator must approve your account before you can log in.");
+            alert("Account request submitted successfully! An administrator must approve your account before you can log in.");
             toggleAuthView(false);
         }
 
@@ -1117,7 +1041,7 @@
             document.getElementById('bal-comp').innerText = currentUser.comp;
 
             const adminNavBtn = document.getElementById('nav-admin-btn');
-            if (currentUser.isAdmin) {
+            if (currentUser.is_admin) {
                 adminNavBtn.style.display = 'flex';
                 document.getElementById('admin-notice-tools').style.display = 'block';
                 populateAdminUserDropdown();
@@ -1141,8 +1065,8 @@
                 <strong>Status:</strong> <span class="badge-status status-approved">ACTIVE</span>
             `;
 
-            document.getElementById('profile-role-tag').innerText = currentUser.isAdmin ? "ADMINISTRATOR" : "OFFICER";
-            if (currentUser.isAdmin) document.getElementById('profile-role-tag').classList.add('tag-admin');
+            document.getElementById('profile-role-tag').innerText = currentUser.is_admin ? "ADMINISTRATOR" : "OFFICER";
+            if (currentUser.is_admin) document.getElementById('profile-role-tag').classList.add('tag-admin');
         }
 
         function logout() {
@@ -1305,18 +1229,23 @@
                 if (found) targetName = found.name;
             }
 
-            selectedCalendarDays.forEach(day => {
+            for (const day of selectedCalendarDays) {
                 const dayKey = `${year}-${month + 1}-${day}`;
-                if (!scheduleData[dayKey]) scheduleData[dayKey] = [];
+                let entries = scheduleData[dayKey] ? [...scheduleData[dayKey]] : [];
 
-                scheduleData[dayKey].push({
+                entries.push({
                     officerBadge: targetBadge,
                     officerName: targetName,
                     type: shiftType
                 });
-            });
 
-            await saveKeyToCloud('cpd_schedule', scheduleData);
+                scheduleData[dayKey] = entries;
+
+                await supabase.from('cpd_schedule').upsert({
+                    day_key: dayKey,
+                    entries: entries
+                });
+            }
 
             alert(`Shifts saved for ${selectedCalendarDays.size} day(s)!`);
             selectedCalendarDays.clear();
@@ -1349,7 +1278,6 @@
             }
 
             chatChannels.push(name);
-            await saveKeyToCloud('cpd_chat_channels', chatChannels);
             document.getElementById('new-channel-name').value = '';
             switchChannel(name);
             alert(`Channel #${name} created!`);
@@ -1383,10 +1311,7 @@
                 text
             };
 
-            chatMessages.push(newMsg);
-            await saveKeyToCloud('cpd_chat_msgs', chatMessages);
-
-            renderChat();
+            await supabase.from('cpd_chat_msgs').insert([newMsg]);
             input.value = '';
         }
 
@@ -1423,10 +1348,9 @@
 
             if (!title || !body) return;
 
-            notices.unshift({ id: Date.now(), title, body, author: currentUser.name, urgent: true });
-            await saveKeyToCloud('cpd_notices', notices);
+            const newNotice = { title, body, author: currentUser.name, urgent: true };
+            await supabase.from('cpd_notices').insert([newNotice]);
 
-            renderNotices();
             document.getElementById('new-notice-card').style.display = 'none';
             document.getElementById('notice-title').value = '';
             document.getElementById('notice-body').value = '';
@@ -1512,7 +1436,7 @@
 
                     <div style="display:flex; gap:6px;">
                         ${u.status === 'pending' ? `<button type="button" class="btn-primary" style="padding:6px; font-size:11px;" onclick="approveUser('${u.badge}')">Approve Officer</button>` : ''}
-                        ${isMainAdmin ? '<span style="font-size:10px; color:var(--admin-gold); align-self:center; font-family:monospace;">🔒 Primary Admin</span>' : `<button type="button" class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower('${u.badge}')">${u.isAdmin ? 'Revoke Admin' : 'Make Admin'}</button>`}
+                        ${isMainAdmin ? '<span style="font-size:10px; color:var(--admin-gold); align-self:center; font-family:monospace;">🔒 Primary Admin</span>' : `<button type="button" class="btn-secondary" style="padding:6px; font-size:11px;" onclick="toggleAdminPower('${u.badge}')">${u.is_admin ? 'Revoke Admin' : 'Make Admin'}</button>`}
                         ${!isMainAdmin ? `<button type="button" class="btn-danger" style="padding:6px 10px; font-size:11px; width:auto;" onclick="deleteUserAccount('${u.badge}')">🗑️ Delete Account</button>` : ''}
                     </div>
                 `;
@@ -1521,45 +1445,34 @@
         }
 
         async function approveUser(badgeId) {
-            const u = users.find(x => x.badge === badgeId);
-            if (u) {
-                u.status = 'approved';
-                await saveKeyToCloud('cpd_users', users);
+            const { error } = await supabase.from('cpd_users').update({ status: 'approved' }).eq('badge', badgeId);
+            if (!error) {
+                await fetchUsers();
                 renderAdminUserList();
                 populateAdminUserDropdown();
-                alert(`Officer #${u.badge} (${u.name}) has been approved!`);
+                alert(`Officer #${badgeId} has been approved!`);
             }
         }
 
         async function toggleAdminPower(badgeId) {
-            if (badgeId === "23-22") {
-                alert("Security Warning: Primary admin privileges cannot be revoked.");
-                return;
-            }
+            if (badgeId === "23-22") return;
             const u = users.find(x => x.badge === badgeId);
             if (u) {
-                u.isAdmin = !u.isAdmin;
-                await saveKeyToCloud('cpd_users', users);
+                const newAdminState = !u.is_admin;
+                await supabase.from('cpd_users').update({ is_admin: newAdminState }).eq('badge', badgeId);
+                await fetchUsers();
                 renderAdminUserList();
-                alert(`Updated admin status for ${u.name}.`);
             }
         }
 
         async function deleteUserAccount(badgeId) {
-            if (badgeId === "23-22") {
-                alert("Cannot delete the primary admin account.");
-                return;
-            }
+            if (badgeId === "23-22") return;
+            if (!confirm(`Delete account #${badgeId}?`)) return;
 
-            if (!confirm(`Are you sure you want to completely delete account #${badgeId}?`)) {
-                return;
-            }
-
-            users = users.filter(u => u.badge !== badgeId);
-            await saveKeyToCloud('cpd_users', users);
+            await supabase.from('cpd_users').delete().eq('badge', badgeId);
+            await fetchUsers();
             renderAdminUserList();
             populateAdminUserDropdown();
-            alert(`Account #${badgeId} has been deleted.`);
         }
 
         async function updateUserDetails(oldBadgeId) {
@@ -1567,30 +1480,19 @@
             if (!u) return;
 
             const nameInput = document.getElementById(`name-${oldBadgeId}`);
-            const badgeInput = document.getElementById(`badge-${oldBadgeId}`);
             const rankInput = document.getElementById(`rank-${oldBadgeId}`);
             const phoneInput = document.getElementById(`phone-${oldBadgeId}`);
             const emergInput = document.getElementById(`emerg-${oldBadgeId}`);
 
-            if (nameInput) u.name = nameInput.value.trim();
-            if (rankInput) u.rank = rankInput.value;
-            if (phoneInput) u.phone = phoneInput.value.trim();
-            if (emergInput) u.emergency = emergInput.value.trim();
+            const updates = {
+                name: nameInput ? nameInput.value.trim() : u.name,
+                rank: rankInput ? rankInput.value : u.rank,
+                phone: phoneInput ? phoneInput.value.trim() : u.phone,
+                emergency: emergInput ? emergInput.value.trim() : u.emergency
+            };
 
-            if (badgeInput && oldBadgeId !== "23-22") {
-                const newBadgeId = badgeInput.value.trim();
-                if (!newBadgeId) {
-                    alert("Badge / Unit number cannot be empty.");
-                    return;
-                }
-                if (newBadgeId !== oldBadgeId && users.find(x => x.badge === newBadgeId)) {
-                    alert("Another account is already using unit number " + newBadgeId + ".");
-                    return;
-                }
-                u.badge = newBadgeId;
-            }
-
-            await saveKeyToCloud('cpd_users', users);
+            await supabase.from('cpd_users').update(updates).eq('badge', oldBadgeId);
+            await fetchUsers();
             renderAdminUserList();
             populateAdminUserDropdown();
             alert("Updated profile details successfully!");
@@ -1612,10 +1514,13 @@
             currentUser.emergency = newEmergency;
             currentUser.pass = newPass;
 
-            const idx = users.findIndex(u => u.badge === currentUser.badge);
-            if (idx !== -1) users[idx] = currentUser;
+            await supabase.from('cpd_users').update({
+                name: newName,
+                phone: newPhone,
+                emergency: newEmergency,
+                pass: newPass
+            }).eq('badge', currentUser.badge);
 
-            await saveKeyToCloud('cpd_users', users);
             setupUserSession();
             alert("Account details updated successfully!");
         }
