@@ -763,7 +763,8 @@
         const SUPABASE_URL = "https://pnsrwtsqfqjjmollbtyr.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuc3J3dHNxZnFqam1vbGxidHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MDEzMTUsImV4cCI6MjEwODk3NzMxNX0.5yDtUqJtWP2WLk_fCbGk5bE4GhyWR34eTaGDUvz7QRk";
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Use supabaseClient to prevent variable scope collision with the CDN package
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let users = [];
         let notices = [];
@@ -796,7 +797,7 @@
         // SUPABASE REALTIME WEBSOCKET LISTENERS
         // ==========================================
         function setupSupabaseRealtime() {
-            supabase
+            supabaseClient
                 .channel('cpd-live-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'cpd_chat_msgs' }, payload => {
                     fetchChatMessages();
@@ -843,24 +844,24 @@
         }
 
         async function fetchUsers() {
-            const { data, error } = await supabase.from('cpd_users').select('*');
+            const { data, error } = await supabaseClient.from('cpd_users').select('*');
             if (!error && data) users = data;
         }
 
         async function fetchNotices() {
-            const { data, error } = await supabase.from('cpd_notices').select('*').order('id', { ascending: false });
+            const { data, error } = await supabaseClient.from('cpd_notices').select('*').order('id', { ascending: false });
             if (!error && data) notices = data;
             renderNotices();
         }
 
         async function fetchChatMessages() {
-            const { data, error } = await supabase.from('cpd_chat_msgs').select('*').order('id', { ascending: true });
+            const { data, error } = await supabaseClient.from('cpd_chat_msgs').select('*').order('id', { ascending: true });
             if (!error && data) chatMessages = data;
             renderChat();
         }
 
         async function fetchSchedule() {
-            const { data, error } = await supabase.from('cpd_schedule').select('*');
+            const { data, error } = await supabaseClient.from('cpd_schedule').select('*');
             if (!error && data) {
                 scheduleData = {};
                 data.forEach(row => {
@@ -917,7 +918,7 @@
             currentUser.notifications.chat = document.getElementById('notif-toggle-chat').checked;
             currentUser.notifications.schedule = document.getElementById('notif-toggle-schedule').checked;
 
-            await supabase.from('cpd_users').update({ notifications: currentUser.notifications }).eq('badge', currentUser.badge);
+            await supabaseClient.from('cpd_users').update({ notifications: currentUser.notifications }).eq('badge', currentUser.badge);
         }
 
         // ==========================================
@@ -927,7 +928,7 @@
             if (!currentUser || !currentUser.isAdmin) return;
             if (!confirm("Are you sure you want to clear all chat messages?")) return;
             
-            await supabase.from('cpd_chat_msgs').delete().neq('id', 0);
+            await supabaseClient.from('cpd_chat_msgs').delete().neq('id', 0);
             chatMessages = [];
             renderChat();
             alert("All chat messages cleared.");
@@ -937,7 +938,7 @@
             if (!currentUser || !currentUser.isAdmin) return;
             if (!confirm("Are you sure you want to clear all announcements?")) return;
 
-            await supabase.from('cpd_notices').delete().neq('id', 0);
+            await supabaseClient.from('cpd_notices').delete().neq('id', 0);
             notices = [];
             renderNotices();
             alert("All announcements cleared.");
@@ -1001,7 +1002,7 @@
                 notifications: { announcements: true, chat: true, schedule: true }
             };
 
-            const { error } = await supabase.from('cpd_users').insert([newUser]);
+            const { error } = await supabaseClient.from('cpd_users').insert([newUser]);
             if (error) {
                 alert("Registration failed: " + error.message);
                 return;
@@ -1241,7 +1242,7 @@
 
                 scheduleData[dayKey] = entries;
 
-                await supabase.from('cpd_schedule').upsert({
+                await supabaseClient.from('cpd_schedule').upsert({
                     day_key: dayKey,
                     entries: entries
                 });
@@ -1311,7 +1312,7 @@
                 text
             };
 
-            await supabase.from('cpd_chat_msgs').insert([newMsg]);
+            await supabaseClient.from('cpd_chat_msgs').insert([newMsg]);
             input.value = '';
         }
 
@@ -1349,7 +1350,7 @@
             if (!title || !body) return;
 
             const newNotice = { title, body, author: currentUser.name, urgent: true };
-            await supabase.from('cpd_notices').insert([newNotice]);
+            await supabaseClient.from('cpd_notices').insert([newNotice]);
 
             document.getElementById('new-notice-card').style.display = 'none';
             document.getElementById('notice-title').value = '';
@@ -1445,7 +1446,7 @@
         }
 
         async function approveUser(badgeId) {
-            const { error } = await supabase.from('cpd_users').update({ status: 'approved' }).eq('badge', badgeId);
+            const { error } = await supabaseClient.from('cpd_users').update({ status: 'approved' }).eq('badge', badgeId);
             if (!error) {
                 await fetchUsers();
                 renderAdminUserList();
@@ -1459,7 +1460,7 @@
             const u = users.find(x => x.badge === badgeId);
             if (u) {
                 const newAdminState = !u.is_admin;
-                await supabase.from('cpd_users').update({ is_admin: newAdminState }).eq('badge', badgeId);
+                await supabaseClient.from('cpd_users').update({ is_admin: newAdminState }).eq('badge', badgeId);
                 await fetchUsers();
                 renderAdminUserList();
             }
@@ -1469,7 +1470,7 @@
             if (badgeId === "23-22") return;
             if (!confirm(`Delete account #${badgeId}?`)) return;
 
-            await supabase.from('cpd_users').delete().eq('badge', badgeId);
+            await supabaseClient.from('cpd_users').delete().eq('badge', badgeId);
             await fetchUsers();
             renderAdminUserList();
             populateAdminUserDropdown();
@@ -1491,7 +1492,7 @@
                 emergency: emergInput ? emergInput.value.trim() : u.emergency
             };
 
-            await supabase.from('cpd_users').update(updates).eq('badge', oldBadgeId);
+            await supabaseClient.from('cpd_users').update(updates).eq('badge', oldBadgeId);
             await fetchUsers();
             renderAdminUserList();
             populateAdminUserDropdown();
@@ -1514,7 +1515,7 @@
             currentUser.emergency = newEmergency;
             currentUser.pass = newPass;
 
-            await supabase.from('cpd_users').update({
+            await supabaseClient.from('cpd_users').update({
                 name: newName,
                 phone: newPhone,
                 emergency: newEmergency,
