@@ -8,17 +8,19 @@
     <meta name="apple-mobile-web-app-title" content="Covington PD">
     <title>Covington Police Department</title>
     
-    <!-- Firebase SDK Compat Libraries (For Realtime Database, Auth & Data Sync) -->
+    <!-- Firebase SDK Compat Libraries (For Realtime Database Sync) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
-    <!-- OneSignal Web SDK for Reliable Push Notifications -->
+    <!-- OneSignal Web SDK for Reliable Web Push Notifications -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: "ad8183dd-3bf0-4cc1-b195-904469254353",
+          serviceWorkerPath: "Covington-Police-Department-Portal/OneSignalSDKWorker.js",
+          serviceWorkerParam: { scope: "/Covington-Police-Department-Portal/" }
         });
       });
     </script>
