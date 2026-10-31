@@ -778,6 +778,13 @@
         let currentCalendarDate = new Date();
 
         window.onload = async function() {
+            // Register Service Worker for PWA Push Notifications
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered successfully:', reg))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            }
+
             await syncFromCloudSilent();
             
             const savedBadge = localStorage.getItem('cpd_active_badge');
@@ -873,30 +880,65 @@
         }
 
         // ==========================================
-        // BROWSER NOTIFICATIONS
+        // BROWSER & WEB PUSH NOTIFICATIONS
         // ==========================================
-        function requestNotificationPermission() {
-            if (!("Notification" in window)) {
-                alert("This browser does not support desktop notifications.");
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        async function requestNotificationPermission() {
+            if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+                alert("This browser does not support push notifications.");
                 return;
             }
 
-            Notification.requestPermission().then(permission => {
+            try {
+                const permission = await Notification.requestPermission();
                 const btn = document.getElementById('enable-notif-btn');
+                
                 if (permission === "granted") {
+                    const registration = await navigator.serviceWorker.ready;
+                    
+                    // Replace with your public VAPID key when generated
+                    const publicVapidKey = "YOUR_PUBLIC_VAPID_KEY"; 
+
+                    if (publicVapidKey && publicVapidKey !== "YOUR_PUBLIC_VAPID_KEY") {
+                        const subscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                        });
+
+                        // Save subscription to the current user record in Supabase
+                        if (currentUser) {
+                            await supabaseClient.from('cpd_users').update({
+                                push_subscription: subscription
+                            }).eq('badge', currentUser.badge);
+                        }
+                    }
+
                     if (btn) {
                         btn.innerText = "✓ NOTIFICATIONS ENABLED";
                         btn.style.background = "var(--success)";
                         btn.style.color = "#000";
                     }
-                    alert("Browser notifications enabled successfully!");
+                    alert("Device notifications & background push enabled successfully!");
                 } else {
                     if (btn) {
                         btn.innerText = "❌ NOTIFICATIONS BLOCKED";
                         btn.style.background = "var(--danger)";
                     }
                 }
-            });
+            } catch (error) {
+                console.error("Error subscribing to push:", error);
+                alert("Error enabling push notifications: " + error.message);
+            }
         }
 
         function triggerDeviceNotification(title, body, category) {
