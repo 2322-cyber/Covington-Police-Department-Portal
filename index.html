@@ -846,15 +846,8 @@
                 if (data) {
                     if (data.cpd_chat_msgs) {
                         if (JSON.stringify(chatMessages) !== JSON.stringify(data.cpd_chat_msgs)) {
-                            const oldLen = chatMessages.length;
                             chatMessages = data.cpd_chat_msgs;
                             renderChat();
-                            if (data.cpd_chat_msgs.length > oldLen) {
-                                const latest = data.cpd_chat_msgs[data.cpd_chat_msgs.length - 1];
-                                if (currentUser && latest.author !== `${currentUser.rank} ${currentUser.name}`) {
-                                    triggerDeviceNotification("CPD Chat", `${latest.author}: ${latest.text}`, "chat");
-                                }
-                            }
                         }
                     } else {
                         chatMessages = [];
@@ -863,12 +856,8 @@
 
                     if (data.cpd_notices) {
                         if (JSON.stringify(notices) !== JSON.stringify(data.cpd_notices)) {
-                            const oldLen = notices.length;
                             notices = data.cpd_notices;
                             renderNotices();
-                            if (data.cpd_notices.length > oldLen) {
-                                triggerDeviceNotification("CPD Announcement", data.cpd_notices[0].title, "announcements");
-                            }
                         }
                     } else {
                         notices = [];
@@ -887,7 +876,6 @@
                         scheduleData = data.cpd_schedule;
                         renderCalendar();
                         renderAdminCalendar();
-                        triggerDeviceNotification("CPD Schedule Update", "Duty schedule/shifts updated.", "schedule");
                     }
 
                     if (data.cpd_chat_channels && JSON.stringify(chatChannels) !== JSON.stringify(data.cpd_chat_channels)) {
@@ -937,15 +925,29 @@
             });
         }
 
-        function triggerDeviceNotification(title, body, category) {
-            if (!currentUser || !currentUser.notifications) return;
-            if (currentUser.notifications[category] === false) return;
-
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, {
-                    body: body,
-                    icon: "https://cdn-icons-png.flaticon.com/512/1022/1022313.png"
+        // ==========================================
+        // AUTOMATED ONESIGNAL REST API PUSH SENDER
+        // ==========================================
+        async function sendOneSignalPush(title, message) {
+            try {
+                await fetch("https://onesignal.com/api/v1/notifications", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8",
+                        "Authorization": "Basic nf4sxwhwkuuaekcqpyyztxwg4" // Your OneSignal REST API Key ID
+                    },
+                    body: JSON.stringify({
+                        app_id: "ad8183dd-3bf0-4cc1-b195-904469254353",
+                        included_segments: ["Total Subscriptions"],
+                        headings: { en: title },
+                        contents: { en: message },
+                        ios_badgeType: "Increase",
+                        ios_badgeCount: 1
+                    })
                 });
+                console.log("Automated background push sent via OneSignal.");
+            } catch (err) {
+                console.error("Failed to dispatch push notification:", err);
             }
         }
 
@@ -1317,6 +1319,10 @@
             });
 
             await saveKeyToCloud('cpd_schedule', scheduleData);
+            
+            // Fire automated push notification for schedule updates
+            await sendOneSignalPush("📅 CPD Schedule Updated", `New shift assignments posted for ${targetName}. Check portal for details.`);
+
             alert(`Shifts saved for ${selectedCalendarDays.size} day(s)!`);
             selectedCalendarDays.clear();
             renderAdminCalendar();
@@ -1375,14 +1381,18 @@
             const text = input.value.trim();
             if (!text || !currentUser) return;
 
+            const authorName = `${currentUser.rank} ${currentUser.name}`;
             const newMsg = {
                 channel: activeChannel,
-                author: `${currentUser.rank} ${currentUser.name}`,
+                author: authorName,
                 text
             };
 
             chatMessages.push(newMsg);
             await saveKeyToCloud('cpd_chat_msgs', chatMessages);
+
+            // Fire automated push notification for chat messages
+            await sendOneSignalPush(`💬 [${activeChannel}] ${authorName}`, text);
 
             renderChat();
             input.value = '';
@@ -1424,8 +1434,13 @@
             notices.unshift({ id: Date.now(), title, body, author: currentUser.name, urgent: true });
             await saveKeyToCloud('cpd_notices', notices);
 
+            // Fire automated push notification for new announcements
+            await sendOneSignalPush("📢 New CPD Announcement: " + title, body);
+
             renderNotices();
             document.getElementById('new-notice-card').style.display = 'none';
+            document.getElementById('notice-title').value = '';
+            document.getElementById('notice-body').value = '';
         }
 
         function renderAdminUserList() {
