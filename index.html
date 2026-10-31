@@ -8,10 +8,20 @@
     <meta name="apple-mobile-web-app-title" content="Covington PD">
     <title>Covington Police Department</title>
     
-    <!-- Firebase SDK Compat Libraries -->
+    <!-- Firebase SDK Compat Libraries (For Realtime Database, Auth & Data Sync) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
+
+    <!-- OneSignal Web SDK for Reliable Push Notifications -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "ad8183dd-3bf0-4cc1-b195-904469254353",
+        });
+      });
+    </script>
 
     <style>
         :root {
@@ -757,7 +767,7 @@
 
     <script>
         // ==========================================
-        // FIREBASE CONFIGURATION
+        // FIREBASE CONFIGURATION (Database Sync Only)
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCgDQc7WQQZo78o0CAwdJGweaKP6x02BaM",
@@ -770,18 +780,11 @@
             measurementId: "G-E2Q473WCF1"
         };
 
-        const VAPID_KEY = "BMVXpeBIZrswE8vM-wUYqXDvssaLnK7Q4rbwXakoWHHwevvsbs2ezEDsZn2o-_GoNXkbfcNdmlEt1XGoOsyEB7k";
-
         // Initialize Firebase
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const dbRef = firebase.database().ref();
-        let messaging = null;
-
-        if (firebase.messaging.isSupported()) {
-            messaging = firebase.messaging();
-        }
 
         const DEFAULT_USERS = [
             {
@@ -833,7 +836,7 @@
         };
 
         // ==========================================
-        // REALTIME CLOUD SYNC & PUSH NOTIFICATIONS
+        // REALTIME CLOUD SYNC
         // ==========================================
         function setupRealtimeSubscription() {
             dbRef.on('value', snapshot => {
@@ -893,80 +896,41 @@
             });
         }
 
-        // Pure JS Base64Url-to-Uint8Array decoder without atob()
-        function urlBase64ToUint8Array(base64String) {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-            let str = base64String.replace(/[-_]/g, m => m === '-' ? '+' : '/');
-            while (str.length % 4) str += '=';
-            
-            const len = str.length;
-            const bufferLength = len * 0.75 - (str[len - 1] === '=' ? (str[len - 2] === '=' ? 2 : 1) : 0);
-            const bytes = new Uint8Array(bufferLength);
-            
-            let p = 0;
-            for (let i = 0; i < len; i += 4) {
-                const encoded1 = chars.indexOf(str[i]);
-                const encoded2 = chars.indexOf(str[i + 1]);
-                const encoded3 = chars.indexOf(str[i + 2]);
-                const encoded4 = chars.indexOf(str[i + 3]);
-                
-                bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
-                if (encoded3 !== 64 && encoded3 !== -1) {
-                    bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
-                }
-                if (encoded4 !== 64 && encoded4 !== -1) {
-                    bytes[p++] = ((encoded3 & 3) << 6) | encoded4;
-                }
-            }
-            return bytes;
-        }
-
+        // ==========================================
+        // ONESIGNAL NOTIFICATION PERMISSIONS
+        // ==========================================
         function requestNotificationPermission() {
-            if (!("Notification" in window)) {
-                alert("This browser does not support notifications.");
+            if (!window.OneSignalDeferred) {
+                alert("OneSignal SDK is loading, please try again in a moment.");
                 return;
             }
 
-            Notification.requestPermission().then(async (permission) => {
-                const btn = document.getElementById('enable-notif-btn');
-                if (permission === "granted") {
-                    btn.innerText = "✓ NOTIFICATIONS ENABLED";
-                    btn.style.background = "var(--success)";
-                    btn.style.color = "#000";
+            OneSignalDeferred.push(async function(OneSignal) {
+                try {
+                    await OneSignal.Notifications.requestPermission();
+                    
+                    const btn = document.getElementById('enable-notif-btn');
+                    if (Notification.permission === "granted") {
+                        if (btn) {
+                            btn.innerText = "✓ NOTIFICATIONS ENABLED";
+                            btn.style.background = "var(--success)";
+                            btn.style.color = "#000";
+                        }
 
-                    if ('serviceWorker' in navigator && messaging) {
-                        try {
-                            const swPath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1) + 'firebase-messaging-sw.js';
-                            
-                            const registration = await navigator.serviceWorker.register(swPath, {
-                                scope: window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1)
-                            });
-
-                            console.log('Service Worker registered successfully:', registration.scope);
-
-                            const applicationServerKey = urlBase64ToUint8Array(VAPID_KEY);
-
-                            const token = await messaging.getToken({
-                                vapidKey: applicationServerKey,
-                                serviceWorkerRegistration: registration
-                            });
-
-                            if (token && currentUser) {
-                                console.log('FCM Token retrieved:', token);
-                                await firebase.database().ref(`cpd_tokens/${currentUser.badge}`).set(token);
-                                alert("Background notifications successfully enabled! Token saved to Firebase.");
-                            } else {
-                                console.warn('Token generated, but user not logged in.');
-                            }
-                        } catch (err) {
-                            console.error('Service Worker / FCM setup error:', err);
-                            alert("FCM Token generation failed: " + err.message);
+                        if (currentUser) {
+                            await OneSignal.User.addTag("badge", currentUser.badge);
+                            await OneSignal.User.addTag("rank", currentUser.rank);
+                        }
+                        alert("Device notifications successfully enabled via OneSignal!");
+                    } else {
+                        if (btn) {
+                            btn.innerText = "❌ NOTIFICATIONS BLOCKED";
+                            btn.style.background = "var(--danger)";
                         }
                     }
-                } else {
-                    btn.innerText = "❌ NOTIFICATIONS BLOCKED";
-                    btn.style.background = "var(--danger)";
-                    alert("Notification permissions blocked. Please update site settings in your browser.");
+                } catch (err) {
+                    console.error("OneSignal Error:", err);
+                    alert("Notification setup failed: " + err.message);
                 }
             });
         }
