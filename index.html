@@ -2,543 +2,714 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Covington Police Department PWA</title>
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Covington Police Department - Tactical Portal</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React & ReactDOM CDN -->
+  <!-- Babel Runtime for JSX Execution -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- React & React DOM -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <!-- Babel Standalone for runtime JSX compilation -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.min.js"></script>
 
   <style>
     body {
-      background-color: #070b14;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #060913;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
-    /* Custom Scrollbars */
+    /* Custom Scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6);
+      background: #0b1120;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(6, 182, 212, 0.4);
-      border-radius: 9999px;
+      background: #1e293b;
+      border-radius: 3px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(6, 182, 212, 0.7);
+      background: #3b82f6;
     }
   </style>
 </head>
-<body class="text-slate-100 min-h-screen selection:bg-cyan-500 selection:text-black">
+<body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect } = React;
+    const { 
+      Shield, Users, Calendar, Clock, MessageSquare, Settings, Lock, 
+      Plus, Trash2, Edit, CheckCircle, XCircle, Send, Phone, UserCheck, 
+      Bell, RefreshCw, Smartphone, AlertTriangle, ChevronLeft, ChevronRight, LogOut 
+    } = lucideReact;
 
-    // --- ICON HELPER COMPONENT ---
-    function Icon({ name, className = "w-4 h-4" }) {
-      const iconRef = useRef(null);
-      useEffect(() => {
-        if (window.lucide && iconRef.current) {
-          iconRef.current.innerHTML = `<i data-lucide="${name}" class="${className}"></i>`;
-          window.lucide.createIcons({
-            attrs: { class: className },
-            nameAttr: 'data-lucide'
-          });
-        }
-      }, [name, className]);
-      return <span ref={iconRef} className="inline-flex items-center justify-center" />;
-    }
-
-    const OFFICER_RANKS = ['Chief', 'Assistant Chief', 'Sergeant', 'Patrolman'];
-
-    // Initial Data
+    // Initial Master Personnel Data
     const INITIAL_USERS = [
       {
-        id: 'u_master',
-        name: 'Seth Persinger',
-        badge: '23-22',
-        phone: '765-585-2798',
-        password: 'admin123',
-        rank: 'Chief',
-        role: 'admin',
-        status: 'approved',
-        smsNotifications: true,
-        carrier: 'verizon',
-        vacationDays: 25,
-        personalDays: 5,
-        compHours: 50
+        id: "usr_master",
+        name: "Seth Persinger",
+        badge: "23-22",
+        phone: "765-585-2798",
+        carrier: "verizon",
+        rank: "Chief",
+        role: "admin",
+        approved: true,
+        smsEnabled: true,
+        password: "admin123",
+        vacationHours: 120,
+        personalHours: 40,
+        compHours: 32
       },
       {
-        id: 'u2',
-        name: 'Sarah Davis',
-        badge: 'CPD-204',
-        phone: '(555) 014-9922',
-        password: 'user',
-        rank: 'Sergeant',
-        role: 'officer',
-        status: 'approved',
-        smsNotifications: true,
-        carrier: 'verizon',
-        vacationDays: 12,
-        personalDays: 3,
+        id: "usr_2",
+        name: "John Davis",
+        badge: "23-14",
+        phone: "765-555-0144",
+        carrier: "att",
+        rank: "Sergeant",
+        role: "officer",
+        approved: true,
+        smsEnabled: true,
+        password: "officerpassword",
+        vacationHours: 80,
+        personalHours: 24,
         compHours: 16
-      },
+      }
+    ];
+
+    const INITIAL_CHATS = [
       {
-        id: 'u3',
-        name: 'John Miller',
-        badge: 'CPD-308',
-        phone: '(555) 018-3341',
-        password: 'user',
-        rank: 'Patrolman',
-        role: 'officer',
-        status: 'approved',
-        smsNotifications: false,
-        carrier: 'att',
-        vacationDays: 10,
-        personalDays: 2,
-        compHours: 8
+        id: "chat_gen",
+        title: "Patrol Alpha Broadcast",
+        members: ["usr_master", "usr_2"],
+        messages: [
+          { id: "m1", senderId: "usr_master", senderName: "Chief Seth Persinger", text: "Department wide directive: Ensure all shift logs are synced before end of watch.", time: "08:00 AM" }
+        ]
       }
     ];
 
     const INITIAL_ANNOUNCEMENTS = [
-      {
-        id: 'a1',
-        title: 'Priority Directive: Community Festival Patrol Strategy',
-        author: 'Chief Seth Persinger',
-        date: '2026-11-01',
-        priority: 'high',
-        content: 'All available units are assigned to main street perimeter control this Friday evening. Direct dispatch issues to Chief Persinger (23-22).'
-      },
-      {
-        id: 'a2',
-        title: 'Updated Armory Access Codes & Body Cam Syncing',
-        author: 'Chief Seth Persinger',
-        date: '2026-10-28',
-        priority: 'medium',
-        content: 'Quarterly biometric passcode rotation completed. Please sync your body cams at the end of every shift.'
-      }
-    ];
-
-    const INITIAL_CHANNELS = [
-      { id: 'c1', name: 'Dispatch & Patrol Alpha', members: ['u_master', 'u2', 'u3'] },
-      { id: 'c2', name: 'Command Staff Only', members: ['u_master'] },
-      { id: 'c3', name: 'Investigation Unit', members: ['u_master', 'u2'] }
-    ];
-
-    const INITIAL_MESSAGES = [
-      {
-        id: 'm1',
-        channelId: 'c1',
-        senderId: 'u2',
-        senderName: 'Sarah Davis',
-        senderRank: 'Sergeant',
-        badge: 'CPD-204',
-        text: 'Unit 204 en route to Sector 4 disturbance.',
-        timestamp: '10:14 AM'
-      },
-      {
-        id: 'm2',
-        channelId: 'c1',
-        senderId: 'u_master',
-        senderName: 'Seth Persinger',
-        senderRank: 'Chief',
-        badge: '23-22',
-        text: 'Copy 204. Backup Unit 308 is 2 minutes away.',
-        timestamp: '10:15 AM'
-      }
-    ];
-
-    const INITIAL_SHIFTS = {
-      '2026-11-05': [{ id: 's1', userId: 'u2', userName: 'Sgt. Sarah Davis', shiftType: 'Day Shift (0700 - 1500)' }],
-      '2026-11-06': [{ id: 's2', userId: 'u2', userName: 'Sgt. Sarah Davis', shiftType: 'Day Shift (0700 - 1500)' }],
-      '2026-11-07': [{ id: 's3', userId: 'u3', userName: 'Patrolman John Miller', shiftType: 'Night Shift (2300 - 0700)' }]
-    };
-
-    const SHIFT_TYPES = [
-      { id: 'day', label: 'Day Shift (0700 - 1500)', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
-      { id: 'mid', label: 'Mid Shift (1500 - 2300)', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
-      { id: 'night', label: 'Night Shift (2300 - 0700)', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
-      { id: 'admin', label: 'Admin Shift (0800 - 1600)', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
-      { id: 'ot', label: 'Overtime Detail', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-      { id: 'special', label: 'Special Detail / Escort', color: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40' }
+      { id: "a1", author: "Chief Seth Persinger", title: "Mandatory Training Session", body: "Active shooter response refresher scheduled for Thursday at headquarters.", date: "2026-11-01" }
     ];
 
     function App() {
-      const [users, setUsers] = useState(() => {
-        const saved = localStorage.getItem('cpd_users');
-        return saved ? JSON.parse(saved) : INITIAL_USERS;
-      });
-
-      const [currentUser, setCurrentUser] = useState(() => {
-        const saved = localStorage.getItem('cpd_current_user');
-        return saved ? JSON.parse(saved) : null;
-      });
-
-      const [announcements, setAnnouncements] = useState(() => {
-        const saved = localStorage.getItem('cpd_announcements');
-        return saved ? JSON.parse(saved) : INITIAL_ANNOUNCEMENTS;
-      });
-
-      const [shifts, setShifts] = useState(() => {
-        const saved = localStorage.getItem('cpd_shifts');
-        return saved ? JSON.parse(saved) : INITIAL_SHIFTS;
-      });
-
-      const [channels, setChannels] = useState(() => {
-        const saved = localStorage.getItem('cpd_channels');
-        return saved ? JSON.parse(saved) : INITIAL_CHANNELS;
-      });
-
-      const [messages, setMessages] = useState(() => {
-        const saved = localStorage.getItem('cpd_messages');
-        return saved ? JSON.parse(saved) : INITIAL_MESSAGES;
-      });
-
-      const [timeOffRequests, setTimeOffRequests] = useState(() => {
-        const saved = localStorage.getItem('cpd_timeoff_requests');
-        return saved ? JSON.parse(saved) : [];
-      });
-
-      const [smsConfig, setSmsConfig] = useState(() => {
-        const saved = localStorage.getItem('cpd_sms_config');
-        return saved ? JSON.parse(saved) : {
-          accountSid: '',
-          authToken: '',
-          fromNumber: '',
-          webhookUrl: '',
-          mode: 'free_carrier'
-        };
-      });
-
+      // Local Storage Persistent States
+      const [users, setUsers] = useState(() => JSON.parse(localStorage.getItem('cpd_users')) || INITIAL_USERS);
+      const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('cpd_current_user')) || null);
+      const [shifts, setShifts] = useState(() => JSON.parse(localStorage.getItem('cpd_shifts')) || []);
+      const [chats, setChats] = useState(() => JSON.parse(localStorage.getItem('cpd_chats')) || INITIAL_CHATS);
+      const [announcements, setAnnouncements] = useState(() => JSON.parse(localStorage.getItem('cpd_announcements')) || INITIAL_ANNOUNCEMENTS);
       const [activeTab, setActiveTab] = useState('announcements');
-      const [toastNotification, setToastNotification] = useState(null);
+      
+      // Gateway Config State
+      const [smsConfig, setSmsConfig] = useState(() => JSON.parse(localStorage.getItem('cpd_sms_config')) || {
+        engine: 'carrier_gateway', // 'carrier_gateway' or 'webhook'
+        webhookUrl: '',
+        twilioSid: '',
+        twilioAuthToken: '',
+        twilioFromNumber: ''
+      });
 
+      // Save persistent state updates
       useEffect(() => { localStorage.setItem('cpd_users', JSON.stringify(users)); }, [users]);
       useEffect(() => { localStorage.setItem('cpd_current_user', JSON.stringify(currentUser)); }, [currentUser]);
-      useEffect(() => { localStorage.setItem('cpd_announcements', JSON.stringify(announcements)); }, [announcements]);
       useEffect(() => { localStorage.setItem('cpd_shifts', JSON.stringify(shifts)); }, [shifts]);
-      useEffect(() => { localStorage.setItem('cpd_channels', JSON.stringify(channels)); }, [channels]);
-      useEffect(() => { localStorage.setItem('cpd_messages', JSON.stringify(messages)); }, [messages]);
-      useEffect(() => { localStorage.setItem('cpd_timeoff_requests', JSON.stringify(timeOffRequests)); }, [timeOffRequests]);
+      useEffect(() => { localStorage.setItem('cpd_chats', JSON.stringify(chats)); }, [chats]);
+      useEffect(() => { localStorage.setItem('cpd_announcements', JSON.stringify(announcements)); }, [announcements]);
       useEffect(() => { localStorage.setItem('cpd_sms_config', JSON.stringify(smsConfig)); }, [smsConfig]);
 
-      const triggerSMSNotifications = async (messageText, targetUserIds = null) => {
-        const recipients = users.filter(u => 
-          u.status === 'approved' && 
-          u.smsNotifications && 
-          (!targetUserIds || targetUserIds.includes(u.id))
-        );
+      // Authentication Handler
+      const handleLogin = (badge, password) => {
+        const found = users.find(u => u.badge === badge && u.password === password);
+        if (!found) return { success: false, message: "Invalid Badge Number or Password" };
+        if (!found.approved) return { success: false, message: "Account Registration Pending Approval by Admin" };
+        setCurrentUser(found);
+        return { success: true };
+      };
 
-        if (recipients.length === 0) return;
-
-        setToastNotification({
-          title: smsConfig.mode === 'free_carrier' 
-            ? `📱 FREE CARRIER SMS DISPATCHED (${recipients.length} Officers)` 
-            : `📱 SMS NOTIFICATION DISPATCHED`,
-          body: `"${messageText.substring(0, 60)}..."`,
-          recipients: recipients.map(r => `${r.rank} ${r.name} (${r.phone})`)
-        });
-
-        setTimeout(() => setToastNotification(null), 7000);
+      const handleRegister = (newUser) => {
+        if (users.some(u => u.badge === newUser.badge)) {
+          return { success: false, message: "Badge number already registered in database" };
+        }
+        const created = {
+          ...newUser,
+          id: `usr_${Date.now()}`,
+          role: 'officer',
+          approved: false,
+          smsEnabled: true,
+          vacationHours: 0,
+          personalHours: 0,
+          compHours: 0
+        };
+        setUsers([...users, created]);
+        return { success: true, message: "Registration submitted! An Admin must approve your access." };
       };
 
       const handleLogout = () => {
         setCurrentUser(null);
-        setActiveTab('announcements');
+        localStorage.removeItem('cpd_current_user');
       };
 
-      return (
-        <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans">
-          {/* Ambient Lighting Background */}
-          <div className="fixed inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
-            <div className="absolute top-1/3 -right-40 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl" />
-          </div>
+      // SMS Dispatch Helper Function
+      const dispatchSmsNotification = (recipientUser, messageText) => {
+        if (!recipientUser.smsEnabled || !recipientUser.phone) return;
 
-          {toastNotification && (
-            <div className="fixed top-4 right-4 z-50 max-w-sm w-full bg-slate-900/95 border border-cyan-500/60 rounded-xl shadow-[0_0_30px_rgba(6,182,212,0.4)] p-4 backdrop-blur-md">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
-                  <Icon name="phone" className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-cyan-300">{toastNotification.title}</h4>
-                  <p className="text-xs text-slate-200 mt-1 font-mono">{toastNotification.body}</p>
-                  <div className="mt-2 text-[10px] text-slate-400 border-t border-slate-800 pt-1">
-                    Recipients: {toastNotification.recipients.join(', ')}
-                  </div>
-                </div>
-                <button onClick={() => setToastNotification(null)} className="text-slate-400 hover:text-white">✕</button>
+        if (smsConfig.engine === 'carrier_gateway') {
+          // Free Carrier Gateway Dispatch simulation / email bridge trigger
+          const carrierSuffixes = {
+            verizon: '@vtext.com',
+            att: '@txt.att.net',
+            tmobile: '@tmomail.net',
+            sprint: '@messaging.sprintpcs.com',
+            straighttalk: '@vtext.com'
+          };
+          const cleanPhone = recipientUser.phone.replace(/\D/g, '');
+          const gatewayEmail = cleanPhone + (carrierSuffixes[recipientUser.carrier] || '@vtext.com');
+          console.log(`[SMS Carrier Dispatch] Sending to ${recipientUser.name} via ${gatewayEmail}: ${messageText}`);
+        } else if (smsConfig.engine === 'webhook' && smsConfig.webhookUrl) {
+          // Custom Webhook POST Request
+          fetch(smsConfig.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: recipientUser.phone,
+              officerName: recipientUser.name,
+              badge: recipientUser.badge,
+              message: messageText
+            })
+          }).catch(err => console.error("Webhook dispatch error:", err));
+        }
+      };
+
+      if (!currentUser) {
+        return <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />;
+      }
+
+      return (
+        <div className="min-h-screen flex flex-col bg-[#060913] text-slate-100">
+          {/* Header Bar */}
+          <header className="bg-[#0b1120] border-b border-slate-800 px-4 py-3 sticky top-0 z-40 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600/20 border border-blue-500/40 rounded-xl">
+                <Shield className="w-6 h-6 text-blue-400" />
+              </div>
+              <div>
+                <h1 className="font-bold text-base tracking-wide text-white">COVINGTON POLICE DEPT</h1>
+                <p className="text-xs font-mono text-cyan-400 flex items-center gap-1">
+                  <span>{currentUser.rank} {currentUser.name}</span>
+                  <span className="text-slate-500">•</span>
+                  <span className="text-slate-400">Badge #{currentUser.badge}</span>
+                </p>
               </div>
             </div>
-          )}
 
-          {!currentUser ? (
-            <AuthScreen users={users} setUsers={setUsers} setCurrentUser={setCurrentUser} />
-          ) : (
-            <div className="flex-1 flex flex-col max-w-7xl w-full mx-auto p-4 z-10">
-              {/* Header */}
-              <header className="bg-slate-900/70 border border-cyan-500/30 rounded-2xl p-4 mb-4 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 p-0.5 flex items-center justify-center">
-                    <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                      <Icon name="shield" className="w-6 h-6 text-cyan-400" />
-                    </div>
-                  </div>
-                  <div>
-                    <h1 className="text-xl font-extrabold tracking-wider bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-300 bg-clip-text text-transparent uppercase">
-                      Covington PD
-                    </h1>
-                    <p className="text-xs text-cyan-400/80 font-mono tracking-widest">TACTICAL MOBILE PWA SYSTEM</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="text-right hidden sm:block">
-                    <div className="text-sm font-semibold text-slate-200">
-                      <span className="text-cyan-400 mr-1">{currentUser.rank}</span>
-                      {currentUser.name}
-                    </div>
-                    <div className="text-xs text-slate-400 font-mono">
-                      Badge: <span className="text-cyan-300">{currentUser.badge}</span> • <span className="text-indigo-400 uppercase font-bold">{currentUser.role}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleLogout}
-                    className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 transition"
-                    title="Log Out"
-                  >
-                    <Icon name="log-out" className="w-5 h-5" />
-                  </button>
-                </div>
-              </header>
-
-              {/* Navigation */}
-              <nav className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-                <NavTab id="announcements" label="Announcements" icon="bell" activeTab={activeTab} setActiveTab={setActiveTab} />
-                <NavTab id="calendar" label="Calendar Roster" icon="calendar" activeTab={activeTab} setActiveTab={setActiveTab} />
-                <NavTab id="timeoff" label="Time Off & Hours" icon="clock" activeTab={activeTab} setActiveTab={setActiveTab} />
-                <NavTab id="messages" label="Secure Comms" icon="message-square" activeTab={activeTab} setActiveTab={setActiveTab} />
-                <NavTab id="settings" label="User Settings" icon="settings" activeTab={activeTab} setActiveTab={setActiveTab} />
-                {currentUser.role === 'admin' && (
-                  <NavTab id="admin" label="Admin Console" icon="shield" activeTab={activeTab} setActiveTab={setActiveTab} isAdmin />
-                )}
-              </nav>
-
-              {/* Main Content */}
-              <main className="flex-1">
-                {activeTab === 'announcements' && <AnnouncementsTab announcements={announcements} />}
-                {activeTab === 'calendar' && <CalendarTab shifts={shifts} setShifts={setShifts} currentUser={currentUser} />}
-                {activeTab === 'timeoff' && <TimeOffTab currentUser={currentUser} timeOffRequests={timeOffRequests} setTimeOffRequests={setTimeOffRequests} />}
-                {activeTab === 'messages' && <MessagesTab currentUser={currentUser} users={users} channels={channels} messages={messages} setMessages={setMessages} triggerSMSNotifications={triggerSMSNotifications} />}
-                {activeTab === 'settings' && <SettingsTab currentUser={currentUser} setCurrentUser={setCurrentUser} setUsers={setUsers} />}
-                {activeTab === 'admin' && currentUser.role === 'admin' && (
-                  <AdminPanelTab 
-                    users={users} setUsers={setUsers} 
-                    shifts={shifts} setShifts={setShifts} 
-                    announcements={announcements} setAnnouncements={setAnnouncements} 
-                    channels={channels} setChannels={setChannels} 
-                    smsConfig={smsConfig} setSmsConfig={setSmsConfig} 
-                    triggerSMSNotifications={triggerSMSNotifications} 
-                  />
-                )}
-              </main>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={handleLogout}
+                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                title="Log Out"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
-          )}
+          </header>
+
+          {/* Main Content Area */}
+          <main className="flex-1 max-w-6xl w-full mx-auto p-4 pb-24">
+            {activeTab === 'announcements' && (
+              <AnnouncementsTab 
+                announcements={announcements} 
+                currentUser={currentUser}
+                onAddAnnouncement={(newAnn) => {
+                  setAnnouncements([newAnn, ...announcements]);
+                  users.filter(u => u.id !== currentUser.id).forEach(u => {
+                    dispatchSmsNotification(u, `[CPD DIRECTIVE] ${newAnn.title}: ${newAnn.body}`);
+                  });
+                }}
+              />
+            )}
+
+            {activeTab === 'calendar' && (
+              <CalendarTab 
+                shifts={shifts} 
+                users={users}
+              />
+            )}
+
+            {activeTab === 'timeoff' && (
+              <TimeOffTab currentUser={currentUser} />
+            )}
+
+            {activeTab === 'comms' && (
+              <CommsTab 
+                chats={chats}
+                users={users}
+                currentUser={currentUser}
+                onSendMessage={(chatId, msgText) => {
+                  setChats(chats.map(c => {
+                    if (c.id === chatId) {
+                      const updatedMsg = {
+                        id: `msg_${Date.now()}`,
+                        senderId: currentUser.id,
+                        senderName: `${currentUser.rank} ${currentUser.name}`,
+                        text: msgText,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      };
+                      // Notify members via SMS
+                      c.members.filter(memId => memId !== currentUser.id).forEach(memId => {
+                        const targetUser = users.find(u => u.id === memId);
+                        if (targetUser) dispatchSmsNotification(targetUser, `[CPD COMMS] Message from ${currentUser.name}: ${msgText}`);
+                      });
+                      return { ...c, messages: [...c.messages, updatedMsg] };
+                    }
+                    return c;
+                  }));
+                }}
+              />
+            )}
+
+            {activeTab === 'settings' && (
+              <SettingsTab 
+                currentUser={currentUser}
+                onUpdateSettings={(updatedData) => {
+                  const updatedUser = { ...currentUser, ...updatedData };
+                  setCurrentUser(updatedUser);
+                  setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
+                }}
+              />
+            )}
+
+            {activeTab === 'admin' && currentUser.role === 'admin' && (
+              <AdminTab 
+                users={users}
+                shifts={shifts}
+                chats={chats}
+                smsConfig={smsConfig}
+                onUpdateSmsConfig={setSmsConfig}
+                onApproveUser={(userId) => {
+                  setUsers(users.map(u => u.id === userId ? { ...u, approved: true } : u));
+                }}
+                onRemoveUser={(userId) => {
+                  if (confirm("Are you sure you want to permanently delete this officer profile?")) {
+                    setUsers(users.filter(u => u.id !== userId));
+                  }
+                }}
+                onUpdateUserBalances={(userId, vacation, personal, comp) => {
+                  setUsers(users.map(u => u.id === userId ? { ...u, vacationHours: vacation, personalHours: personal, compHours: comp } : u));
+                }}
+                onAddShifts={(newShiftsList) => {
+                  setShifts([...shifts, ...newShiftsList]);
+                }}
+                onDeleteShift={(shiftId) => {
+                  setShifts(shifts.filter(s => s.id !== shiftId));
+                }}
+                onWipeMonthShifts={(year, month) => {
+                  setShifts(shifts.filter(s => {
+                    const d = new Date(s.date);
+                    return !(d.getFullYear() === year && d.getMonth() === month);
+                  }));
+                }}
+                onCreateChatChannel={(title, memberIds) => {
+                  const newChannel = {
+                    id: `chat_${Date.now()}`,
+                    title,
+                    members: [...memberIds, currentUser.id],
+                    messages: []
+                  };
+                  setChats([...chats, newChannel]);
+                }}
+              />
+            )}
+          </main>
+
+          {/* Navigation Bar */}
+          <nav className="fixed bottom-0 left-0 right-0 bg-[#0b1120]/95 backdrop-blur-md border-t border-slate-800 z-40">
+            <div className="max-w-md mx-auto flex justify-around py-2 px-2">
+              <NavButton icon={Bell} label="Directives" active={activeTab === 'announcements'} onClick={() => setActiveTab('announcements')} />
+              <NavButton icon={Calendar} label="Roster" active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} />
+              <NavButton icon={Clock} label="Time Off" active={activeTab === 'timeoff'} onClick={() => setActiveTab('timeoff')} />
+              <NavButton icon={MessageSquare} label="Comms" active={activeTab === 'comms'} onClick={() => setActiveTab('comms')} />
+              <NavButton icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+              {currentUser.role === 'admin' && (
+                <NavButton icon={Shield} label="Admin" active={activeTab === 'admin'} onClick={() => setActiveTab('admin')} highlight />
+              )}
+            </div>
+          </nav>
         </div>
       );
     }
 
-    function NavTab({ id, label, icon, activeTab, setActiveTab, isAdmin }) {
-      const isActive = activeTab === id;
+    function NavButton({ icon: Icon, label, active, onClick, highlight }) {
       return (
         <button
-          onClick={() => setActiveTab(id)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all border ${
-            isActive
-              ? 'bg-blue-600/20 text-cyan-300 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-              : 'bg-slate-900/50 text-slate-400 border-slate-800 hover:text-slate-200'
+          onClick={onClick}
+          className={`flex flex-col items-center py-1 px-2 rounded-xl transition ${
+            active 
+              ? (highlight ? 'text-cyan-400 bg-cyan-500/10' : 'text-blue-400 bg-blue-500/10') 
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <Icon name={icon} className="w-4 h-4" />
-          <span>{label}</span>
-          {isAdmin && <span className="ml-1 text-[10px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-500/30">ADMIN</span>}
+          <Icon className="w-5 h-5" />
+          <span className="text-[10px] font-semibold mt-1">{label}</span>
         </button>
       );
     }
 
-    // --- AUTH SCREEN ---
-    function AuthScreen({ users, setUsers, setCurrentUser }) {
-      const [mode, setMode] = useState('login');
+    // --- AUTHENTICATION COMPONENT ---
+    function AuthScreen({ onLogin, onRegister }) {
+      const [isRegistering, setIsRegistering] = useState(false);
       const [badge, setBadge] = useState('');
       const [password, setPassword] = useState('');
-      const [name, setName] = useState('');
-      const [phone, setPhone] = useState('');
-      const [rank, setRank] = useState('Patrolman');
-      const [carrier, setCarrier] = useState('verizon');
       const [error, setError] = useState('');
       const [successMsg, setSuccessMsg] = useState('');
 
-      const handleLogin = (e) => {
-        e?.preventDefault();
+      // Registration Form State
+      const [regName, setRegName] = useState('');
+      const [regBadge, setRegBadge] = useState('');
+      const [regPhone, setRegPhone] = useState('');
+      const [regCarrier, setRegCarrier] = useState('verizon');
+      const [regRank, setRegRank] = useState('Patrolman');
+      const [regPassword, setRegPassword] = useState('');
+
+      const handleSubmitLogin = (e) => {
+        e.preventDefault();
         setError('');
-        const user = users.find(u => u.badge.toLowerCase() === badge.trim().toLowerCase());
-        if (!user || user.password !== password) {
-          setError('Invalid Badge Number or Password.');
-          return;
-        }
-        if (user.status === 'pending') {
-          setError('Account is PENDING approval by Command Administrator.');
-          return;
-        }
-        setCurrentUser(user);
+        const res = onLogin(badge, password);
+        if (!res.success) setError(res.message);
       };
 
-      const handleRegister = (e) => {
+      const handleSubmitRegister = (e) => {
         e.preventDefault();
-        if (!name || !badge || !phone || !password) {
-          setError('All fields are required.');
-          return;
+        setError('');
+        setSuccessMsg('');
+        const res = onRegister({
+          name: regName,
+          badge: regBadge,
+          phone: regPhone,
+          carrier: regCarrier,
+          rank: regRank,
+          password: regPassword
+        });
+        if (!res.success) {
+          setError(res.message);
+        } else {
+          setSuccessMsg(res.message);
+          setIsRegistering(false);
+          setBadge(regBadge);
         }
-        const newUser = {
-          id: 'u_' + Date.now(),
-          name, badge: badge.toUpperCase(), phone, password, rank, carrier,
-          role: 'officer', status: 'pending', smsNotifications: true,
-          vacationDays: 10, personalDays: 3, compHours: 0
-        };
-        setUsers([...users, newUser]);
-        setSuccessMsg('Registration submitted! Account is pending Admin approval.');
-        setMode('login');
       };
 
       return (
-        <div className="flex-1 flex items-center justify-center p-4 z-10">
-          <div className="max-w-md w-full bg-slate-900/80 border border-cyan-500/30 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative">
+        <div className="min-h-screen bg-[#060913] flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0b1120] border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-600"></div>
+            
             <div className="text-center mb-6">
-              <div className="inline-flex p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mb-3">
-                <Icon name="shield" className="w-10 h-10" />
+              <div className="inline-flex p-3 bg-blue-600/10 border border-blue-500/30 rounded-2xl mb-3">
+                <Shield className="w-10 h-10 text-blue-400" />
               </div>
-              <h2 className="text-2xl font-black text-slate-100 tracking-wider uppercase">Covington Police Dept</h2>
-              <p className="text-xs text-cyan-400/80 font-mono mt-1">SECURE OFFICER PORTAL</p>
+              <h2 className="text-xl font-bold text-white tracking-wide">COVINGTON POLICE DEPT</h2>
+              <p className="text-xs text-slate-400 font-mono mt-1">OFFICER TACTICAL SERVICE PORTAL</p>
             </div>
 
-            {error && <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/50 text-red-300 text-xs">{error}</div>}
-            {successMsg && <div className="mb-4 p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs">{successMsg}</div>}
+            {error && (
+              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center gap-2 text-rose-400 text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-            {mode === 'login' ? (
-              <form onSubmit={handleLogin} className="space-y-4">
+            {successMsg && (
+              <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-emerald-400 text-xs">
+                <CheckCircle className="w-4 h-4 shrink-0" />
+                <span>{successMsg}</span>
+              </div>
+            )}
+
+            {!isRegistering ? (
+              <form onSubmit={handleSubmitLogin} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-mono text-slate-400 uppercase mb-1">Badge Number</label>
-                  <input type="text" placeholder="e.g. 23-22" value={badge} onChange={e => setBadge(e.target.value)} className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-400" required />
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Badge Number</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={badge} 
+                    onChange={e => setBadge(e.target.value)}
+                    placeholder="e.g. 23-22"
+                    className="w-full bg-[#060913] border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-slate-400 uppercase mb-1">Password</label>
-                  <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-400" required />
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Password</label>
+                  <input 
+                    type="password" 
+                    required 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[#060913] border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                  />
                 </div>
-                <button type="submit" className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold uppercase text-xs tracking-wider">Authenticate Access</button>
-                <div className="text-center pt-2">
-                  <button type="button" onClick={() => setMode('register')} className="text-xs text-slate-400 hover:text-cyan-300">Register New Officer Account</button>
+
+                <button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-blue-600/20 text-sm mt-2"
+                >
+                  Authenticate Personnel
+                </button>
+
+                <div className="pt-4 border-t border-slate-800 text-center">
+                  <button 
+                    type="button" 
+                    onClick={() => { setIsRegistering(true); setError(''); }}
+                    className="text-xs text-cyan-400 hover:underline font-medium"
+                  >
+                    New Officer? Request Account Approval
+                  </button>
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleRegister} className="space-y-3">
-                <input type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-100" required />
-                <select value={rank} onChange={e => setRank(e.target.value)} className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-100">
-                  {OFFICER_RANKS.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-                <input type="text" placeholder="Badge Number (e.g. 23-22)" value={badge} onChange={e => setBadge(e.target.value)} className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-100" required />
-                <input type="tel" placeholder="Cell Phone Number" value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-100" required />
-                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-100" required />
-                <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 text-slate-100 font-bold uppercase text-xs">Submit Registration</button>
-                <div className="text-center pt-2">
-                  <button type="button" onClick={() => setMode('login')} className="text-xs text-slate-400">Back to Login</button>
+              <form onSubmit={handleSubmitRegister} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={regName} 
+                    onChange={e => setRegName(e.target.value)}
+                    placeholder="Officer Name"
+                    className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Badge Number</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={regBadge} 
+                      onChange={e => setRegBadge(e.target.value)}
+                      placeholder="e.g. 23-45"
+                      className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Rank</label>
+                    <select 
+                      value={regRank} 
+                      onChange={e => setRegRank(e.target.value)}
+                      className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="Chief">Chief</option>
+                      <option value="Assistant Chief">Assistant Chief</option>
+                      <option value="Sergeant">Sergeant</option>
+                      <option value="Patrolman">Patrolman</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Cell Phone Number</label>
+                    <input 
+                      type="tel" 
+                      required 
+                      value={regPhone} 
+                      onChange={e => setRegPhone(e.target.value)}
+                      placeholder="765-555-0100"
+                      className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Carrier (For Free SMS)</label>
+                    <select 
+                      value={regCarrier} 
+                      onChange={e => setRegCarrier(e.target.value)}
+                      className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="verizon">Verizon</option>
+                      <option value="att">AT&T</option>
+                      <option value="tmobile">T-Mobile</option>
+                      <option value="straighttalk">Straight Talk</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Create Password</label>
+                  <input 
+                    type="password" 
+                    required 
+                    value={regPassword} 
+                    onChange={e => setRegPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-2.5 rounded-xl transition text-sm mt-2"
+                >
+                  Submit Registration Request
+                </button>
+
+                <div className="pt-3 border-t border-slate-800 text-center">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsRegistering(false)}
+                    className="text-xs text-slate-400 hover:text-white"
+                  >
+                    Back to Login
+                  </button>
                 </div>
               </form>
             )}
-
-            <div className="mt-6 pt-4 border-t border-slate-800">
-              <button onClick={() => setCurrentUser(users.find(u => u.badge === '23-22') || INITIAL_USERS[0])} className="w-full p-2.5 rounded-xl bg-gradient-to-r from-cyan-950 to-blue-950 border border-cyan-500/50 text-cyan-300 text-xs font-mono text-left flex justify-between items-center">
-                <div>
-                  <div className="font-bold">Chief Seth Persinger</div>
-                  <div className="text-[10px] text-slate-400">Badge: 23-22 • Master Admin</div>
-                </div>
-                <span className="text-[10px] bg-cyan-500/20 px-2 py-1 rounded">LOGIN NOW</span>
-              </button>
-            </div>
           </div>
         </div>
       );
     }
 
-    // --- ANNOUNCEMENTS TAB ---
-    function AnnouncementsTab({ announcements }) {
+    // --- TAB COMPONENTS ---
+
+    function AnnouncementsTab({ announcements, currentUser, onAddAnnouncement }) {
+      const [title, setTitle] = useState('');
+      const [body, setBody] = useState('');
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        onAddAnnouncement({
+          id: `ann_${Date.now()}`,
+          author: `${currentUser.rank} ${currentUser.name}`,
+          title,
+          body,
+          date: new Date().toISOString().split('T')[0]
+        });
+        setTitle('');
+        setBody('');
+      };
+
       return (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
-            <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-              <Icon name="bell" className="w-5 h-5 text-cyan-400" /> Department Directives
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Bell className="w-5 h-5 text-blue-400" />
+              Department Directives & Announcements
             </h2>
           </div>
-          {announcements.map(item => (
-            <div key={item.id} className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5">
-              <h3 className="text-base font-semibold text-cyan-300">{item.title}</h3>
-              <div className="text-xs text-slate-400 font-mono my-2">By: {item.author} • Date: {item.date}</div>
-              <p className="text-sm text-slate-300 bg-slate-950/50 p-3 rounded-xl border border-slate-800">{item.content}</p>
-            </div>
-          ))}
+
+          {currentUser.role === 'admin' && (
+            <form onSubmit={handleSubmit} className="bg-[#0b1120] border border-blue-500/30 rounded-2xl p-4 space-y-3">
+              <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Post New Directive (Triggers SMS to Squad)</h3>
+              <input 
+                type="text" 
+                required 
+                placeholder="Directive Title" 
+                value={title} 
+                onChange={e => setTitle(e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+              <textarea 
+                required 
+                rows="3" 
+                placeholder="Announcement Body..." 
+                value={body} 
+                onChange={e => setBody(e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              ></textarea>
+              <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2">
+                <Send className="w-4 h-4" /> Dispatch Directive
+              </button>
+            </form>
+          )}
+
+          <div className="space-y-4">
+            {announcements.map(ann => (
+              <div key={ann.id} className="bg-[#0b1120] border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
+                <div className="absolute top-0 left-0 bottom-0 w-1 bg-blue-500"></div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-mono text-cyan-400">{ann.author}</span>
+                  <span className="text-xs text-slate-500 font-mono">{ann.date}</span>
+                </div>
+                <h3 className="text-base font-bold text-white mb-2">{ann.title}</h3>
+                <p className="text-sm text-slate-300 whitespace-pre-line">{ann.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       );
     }
 
-    // --- CALENDAR TAB ---
-    function CalendarTab({ shifts, setShifts, currentUser }) {
-      const [currentDate, setCurrentDate] = useState(new Date(2026, 10, 1));
+    function CalendarTab({ shifts, users }) {
+      const [currentDate, setCurrentDate] = useState(new Date());
+
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
-      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const firstDayIndex = new Date(year, month, 1).getDay();
 
-      const days = [];
-      for (let i = 0; i < firstDayIndex; i++) days.push(null);
-      for (let d = 1; d <= daysInMonth; d++) days.push(d);
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+      const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+      const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
       return (
-        <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 backdrop-blur-md">
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-800">
-            <h2 className="text-xl font-bold text-slate-100">{monthNames[month]} {year}</h2>
-            <div className="flex gap-2">
-              <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 bg-slate-800 rounded-xl">‹</button>
-              <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 bg-slate-800 rounded-xl">›</button>
-            </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-[#0b1120] border border-slate-800 p-4 rounded-2xl">
+            <button onClick={handlePrevMonth} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h2 className="text-base font-bold text-white font-mono uppercase tracking-wider">
+              {monthNames[month]} {year}
+            </h2>
+            <button onClick={handleNextMonth} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300">
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
-          <div className="grid grid-cols-7 gap-2 text-center text-xs font-mono font-bold text-cyan-400 mb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d}>{d}</div>)}
+
+          <div className="grid grid-cols-7 gap-1 text-center font-mono text-xs text-slate-400 mb-1">
+            <span>SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span>
           </div>
-          <div className="grid grid-cols-7 gap-2">
-            {days.map((day, i) => {
-              if (!day) return <div key={i} className="h-28 bg-slate-950/20 rounded-xl" />;
-              const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const dayShifts = shifts[key] || [];
+
+          <div className="grid grid-cols-7 gap-1.5">
+            {Array.from({ length: firstDayIndex }).map((_, i) => (
+              <div key={`empty_${i}`} className="h-24 bg-[#080d1a]/40 rounded-xl border border-slate-900"></div>
+            ))}
+
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const dayNum = i + 1;
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+              const dayShifts = shifts.filter(s => s.date === dateStr);
+
               return (
-                <div key={key} className="h-28 bg-slate-950/60 border border-slate-800 rounded-xl p-1.5 flex flex-col">
-                  <div className="text-xs font-mono font-bold text-slate-400 mb-1">{day}</div>
-                  <div className="space-y-1 overflow-y-auto flex-1 scrollbar-none">
-                    {dayShifts.map((s, idx) => (
-                      <div key={idx} className="text-[10px] p-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 truncate">
-                        {s.userName}
-                      </div>
-                    ))}
+                <div key={dateStr} className="min-h-[100px] bg-[#0b1120] border border-slate-800/80 rounded-xl p-1.5 flex flex-col justify-between">
+                  <div className="text-right">
+                    <span className="text-xs font-mono font-bold text-slate-400">{dayNum}</span>
+                  </div>
+                  <div className="space-y-1 my-1 flex-1 overflow-y-auto max-h-20">
+                    {dayShifts.map(s => {
+                      const officer = users.find(u => u.id === s.userId);
+                      const shiftColors = {
+                        "Day Shift": "bg-amber-500/10 text-amber-400 border-amber-500/30",
+                        "Mid Shift": "bg-blue-500/10 text-blue-400 border-blue-500/30",
+                        "Night Shift": "bg-indigo-500/10 text-indigo-400 border-indigo-500/30",
+                        "Admin Shift": "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                      };
+                      return (
+                        <div key={s.id} className={`text-[10px] p-1 rounded border leading-tight ${shiftColors[s.shiftType] || 'bg-slate-800 text-slate-300'}`}>
+                          <div className="font-bold truncate">{officer ? officer.name : 'Unknown'}</div>
+                          <div className="opacity-80 text-[9px]">{s.shiftType}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -548,158 +719,474 @@
       );
     }
 
-    // --- TIME OFF TAB ---
-    function TimeOffTab({ currentUser, timeOffRequests, setTimeOffRequests }) {
+    function TimeOffTab({ currentUser }) {
       return (
         <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5">
-              <div className="text-xs font-mono text-slate-400">VACATION DAYS</div>
-              <div className="text-2xl font-black text-cyan-300">{currentUser.vacationDays || 0} Days</div>
-            </div>
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5">
-              <div className="text-xs font-mono text-slate-400">PERSONAL DAYS</div>
-              <div className="text-2xl font-black text-blue-300">{currentUser.personalDays || 0} Days</div>
-            </div>
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5">
-              <div className="text-xs font-mono text-slate-400">COMP HOURS</div>
-              <div className="text-2xl font-black text-indigo-300">{currentUser.compHours || 0} Hours</div>
-            </div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Clock className="w-5 h-5 text-blue-400" />
+            Officer Accrued Time Off Balances
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <BalanceCard title="Vacation Days" hours={currentUser.vacationHours || 0} color="border-blue-500/40 bg-blue-500/5 text-blue-400" />
+            <BalanceCard title="Personal Days" hours={currentUser.personalHours || 0} color="border-cyan-500/40 bg-cyan-500/5 text-cyan-400" />
+            <BalanceCard title="Comp Time Hours" hours={currentUser.compHours || 0} color="border-emerald-500/40 bg-emerald-500/5 text-emerald-400" />
           </div>
         </div>
       );
     }
 
-    // --- MESSAGES TAB ---
-    function MessagesTab({ currentUser, users, channels, messages, setMessages, triggerSMSNotifications }) {
-      const [inputMsg, setInputMsg] = useState('');
-      const activeChannel = channels[0];
+    function BalanceCard({ title, hours, color }) {
+      return (
+        <div className={`border rounded-2xl p-6 ${color}`}>
+          <p className="text-xs font-mono uppercase tracking-wider mb-2">{title}</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-bold font-mono text-white">{hours}</span>
+            <span className="text-xs text-slate-400">Hours</span>
+          </div>
+          <p className="text-[10px] text-slate-500 mt-2 font-mono">≈ {(hours / 8).toFixed(1)} Days Accrued</p>
+        </div>
+      );
+    }
+
+    function CommsTab({ chats, users, currentUser, onSendMessage }) {
+      const [activeChatId, setActiveChatId] = useState(chats[0]?.id || null);
+      const [msgText, setMsgText] = useState('');
+
+      const activeChat = chats.find(c => c.id === activeChatId);
 
       const handleSend = (e) => {
         e.preventDefault();
-        if (!inputMsg.trim()) return;
-        const newMsg = {
-          id: 'm_' + Date.now(),
-          channelId: activeChannel.id,
-          senderId: currentUser.id,
-          senderName: currentUser.name,
-          senderRank: currentUser.rank,
-          badge: currentUser.badge,
-          text: inputMsg.trim(),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setMessages([...messages, newMsg]);
-        triggerSMSNotifications(`[CPD CHAT] ${currentUser.rank} ${currentUser.name}: ${inputMsg.trim()}`);
-        setInputMsg('');
+        if (!msgText.trim()) return;
+        onSendMessage(activeChatId, msgText);
+        setMsgText('');
       };
 
       return (
-        <div className="bg-slate-900/70 border border-slate-800 rounded-2xl h-[550px] flex flex-col">
-          <div className="p-4 border-b border-slate-800 font-bold text-cyan-300"># {activeChannel.name}</div>
-          <div className="flex-1 p-4 overflow-y-auto space-y-3">
-            {messages.filter(m => m.channelId === activeChannel.id).map(m => (
-              <div key={m.id} className={`flex flex-col ${m.senderId === currentUser.id ? 'items-end' : 'items-start'}`}>
-                <div className="text-[10px] text-slate-400 font-mono">{m.senderRank} {m.senderName} ({m.badge}) • {m.timestamp}</div>
-                <div className="p-3 rounded-2xl text-xs max-w-md bg-slate-950 border border-slate-800 mt-1">{m.text}</div>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[600px] bg-[#0b1120] border border-slate-800 rounded-2xl overflow-hidden">
+          {/* Channel List */}
+          <div className="border-r border-slate-800 p-4 space-y-2">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Comms Channels</h3>
+            {chats.filter(c => c.members.includes(currentUser.id)).map(c => (
+              <button 
+                key={c.id} 
+                onClick={() => setActiveChatId(c.id)}
+                className={`w-full text-left p-3 rounded-xl transition flex items-center justify-between ${
+                  activeChatId === c.id ? 'bg-blue-600/20 border border-blue-500/40 text-white' : 'hover:bg-slate-800/50 text-slate-400'
+                }`}
+              >
+                <div className="truncate">
+                  <p className="text-xs font-bold truncate">{c.title}</p>
+                  <p className="text-[10px] font-mono text-slate-500">{c.messages.length} Dispatches</p>
+                </div>
+              </button>
             ))}
           </div>
-          <form onSubmit={handleSend} className="p-3 border-t border-slate-800 flex gap-2">
-            <input type="text" value={inputMsg} onChange={e => setInputMsg(e.target.value)} placeholder="Type tactical message..." className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-100 outline-none" />
-            <button type="submit" className="px-4 py-2 bg-cyan-500 text-slate-950 font-bold rounded-xl text-xs">Send</button>
-          </form>
-        </div>
-      );
-    }
 
-    // --- SETTINGS TAB ---
-    function SettingsTab({ currentUser, setCurrentUser, setUsers }) {
-      return (
-        <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 max-w-xl mx-auto space-y-4">
-          <h3 className="text-lg font-bold text-slate-100">Officer Account Settings</h3>
-          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
-            <span className="text-xs font-bold text-cyan-300">SMS Notifications Enabled</span>
-            <input type="checkbox" checked={currentUser.smsNotifications} onChange={e => {
-              const updated = { ...currentUser, smsNotifications: e.target.checked };
-              setCurrentUser(updated);
-              setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
-            }} />
+          {/* Active Chat Thread */}
+          <div className="md:col-span-2 flex flex-col h-full bg-[#060913]">
+            {activeChat ? (
+              <>
+                <div className="p-4 border-b border-slate-800 bg-[#0b1120]">
+                  <h3 className="text-sm font-bold text-white">{activeChat.title}</h3>
+                </div>
+
+                <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                  {activeChat.messages.map(m => {
+                    const isMe = m.senderId === currentUser.id;
+                    return (
+                      <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-mono text-slate-400">{m.senderName}</span>
+                          <span className="text-[9px] text-slate-600">{m.time}</span>
+                        </div>
+                        <div className={`p-3 rounded-2xl text-xs max-w-md ${
+                          isMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'
+                        }`}>
+                          {m.text}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <form onSubmit={handleSend} className="p-3 border-t border-slate-800 bg-[#0b1120] flex gap-2">
+                  <input 
+                    type="text" 
+                    value={msgText} 
+                    onChange={e => setMsgText(e.target.value)}
+                    placeholder="Transmit tactical message..."
+                    className="flex-1 bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                  <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-xl">
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-500 text-xs">
+                Select a channel to view communications
+              </div>
+            )}
           </div>
         </div>
       );
     }
 
-    // --- ADMIN PANEL TAB ---
-    function AdminPanelTab({ users, setUsers, shifts, setShifts, announcements, setAnnouncements, triggerSMSNotifications }) {
+    function SettingsTab({ currentUser, onUpdateSettings }) {
+      const [smsEnabled, setSmsEnabled] = useState(currentUser.smsEnabled ?? true);
+      const [phone, setPhone] = useState(currentUser.phone || '');
+      const [carrier, setCarrier] = useState(currentUser.carrier || 'verizon');
+
+      const handleSave = () => {
+        onUpdateSettings({ smsEnabled, phone, carrier });
+        alert("Officer Settings Saved Successfully!");
+      };
+
+      return (
+        <div className="max-w-xl space-y-6">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Settings className="w-5 h-5 text-blue-400" />
+            Officer Device & Notification Settings
+          </h2>
+
+          <div className="bg-[#0b1120] border border-slate-800 rounded-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <div>
+                <p className="text-sm font-bold text-white">Receive SMS Text Alerts</p>
+                <p className="text-xs text-slate-400">Receive real text dispatches for directives and channel comms</p>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={smsEnabled} 
+                onChange={e => setSmsEnabled(e.target.checked)}
+                className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Registered Cell Phone</label>
+              <input 
+                type="tel" 
+                value={phone} 
+                onChange={e => setPhone(e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Mobile Carrier (For Direct Free SMS Bridge)</label>
+              <select 
+                value={carrier} 
+                onChange={e => setCarrier(e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="verizon">Verizon</option>
+                <option value="att">AT&T</option>
+                <option value="tmobile">T-Mobile</option>
+                <option value="straighttalk">Straight Talk</option>
+              </select>
+            </div>
+
+            <button onClick={handleSave} className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs">
+              Save Configuration
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function AdminTab({ users, shifts, chats, smsConfig, onUpdateSmsConfig, onApproveUser, onRemoveUser, onUpdateUserBalances, onAddShifts, onDeleteShift, onWipeMonthShifts, onCreateChatChannel }) {
+      const [adminSubTab, setAdminSubTab] = useState('approvals');
+
+      // Schedule Shift Form State
       const [selectedUser, setSelectedUser] = useState(users[0]?.id || '');
-      const [shiftType, setShiftType] = useState(SHIFT_TYPES[0].label);
-      const [selectedDays, setSelectedDays] = useState([]);
-      const [announcementTitle, setAnnouncementTitle] = useState('');
-      const [announcementContent, setAnnouncementContent] = useState('');
+      const [shiftType, setShiftType] = useState('Day Shift');
+      const [selectedDates, setSelectedDates] = useState([]);
+      const [wipeYear, setWipeYear] = useState(new Date().getFullYear());
+      const [wipeMonth, setWipeMonth] = useState(new Date().getMonth());
+
+      // Chat Creation State
+      const [newChatTitle, setNewChatTitle] = useState('');
+      const [selectedMembers, setSelectedMembers] = useState([]);
+
+      const toggleDateSelection = (dateStr) => {
+        if (selectedDates.includes(dateStr)) {
+          setSelectedDates(selectedDates.filter(d => d !== dateStr));
+        } else {
+          setSelectedDates([...selectedDates, dateStr]);
+        }
+      };
 
       const handleSaveShifts = () => {
-        const u = users.find(x => x.id === selectedUser);
-        if (!u || selectedDays.length === 0) return;
-        const updated = { ...shifts };
-        selectedDays.forEach(day => {
-          const key = `2026-11-${String(day).padStart(2, '0')}`;
-          if (!updated[key]) updated[key] = [];
-          updated[key].push({ id: 's_' + Date.now() + '_' + Math.random(), userId: u.id, userName: `${u.rank} ${u.name}`, shiftType });
-        });
-        setShifts(updated);
-        setSelectedDays([]);
-        alert('Shifts published to department roster!');
-      };
-
-      const handleApprove = (userId) => {
-        setUsers(users.map(u => u.id === userId ? { ...u, status: 'approved' } : u));
-      };
-
-      const handleDeleteUser = (userId) => {
-        if (confirm('Permanently remove officer from database?')) {
-          setUsers(users.filter(u => u.id !== userId));
-        }
+        if (!selectedUser || selectedDates.length === 0) return alert("Select an officer and at least one date.");
+        const newShifts = selectedDates.map(d => ({
+          id: `sh_${Date.now()}_${Math.random()}`,
+          userId: selectedUser,
+          shiftType,
+          date: d
+        }));
+        onAddShifts(newShifts);
+        setSelectedDates([]);
+        alert("Shifts Scheduled Successfully!");
       };
 
       return (
         <div className="space-y-6">
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6">
-            <h3 className="text-base font-bold text-cyan-300 mb-4">Pending Registrations</h3>
-            {users.filter(u => u.status === 'pending').map(u => (
-              <div key={u.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between mb-2">
-                <div className="text-xs">{u.rank} {u.name} (Badge: {u.badge})</div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleApprove(u.id)} className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded text-xs">Approve</button>
-                  <button onClick={() => handleDeleteUser(u.id)} className="px-3 py-1 bg-red-500/20 text-red-300 rounded text-xs">Reject</button>
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Shield className="w-5 h-5 text-cyan-400" />
+              Chief Administration Console
+            </h2>
+            <div className="flex gap-2 text-xs">
+              <button onClick={() => setAdminSubTab('approvals')} className={`px-3 py-1.5 rounded-xl ${adminSubTab === 'approvals' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' : 'text-slate-400'}`}>Roster & Approvals</button>
+              <button onClick={() => setAdminSubTab('scheduler')} className={`px-3 py-1.5 rounded-xl ${adminSubTab === 'scheduler' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' : 'text-slate-400'}`}>Shift Scheduler</button>
+              <button onClick={() => setAdminSubTab('channels')} className={`px-3 py-1.5 rounded-xl ${adminSubTab === 'channels' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' : 'text-slate-400'}`}>Comms Channels</button>
+              <button onClick={() => setAdminSubTab('sms')} className={`px-3 py-1.5 rounded-xl ${adminSubTab === 'sms' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' : 'text-slate-400'}`}>SMS Gateway API</button>
+            </div>
           </div>
 
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6">
-            <h3 className="text-base font-bold text-cyan-300 mb-4">Schedule Shifts</h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-100">
-                {users.map(u => <option key={u.id} value={u.id}>{u.rank} {u.name} ({u.badge})</option>)}
-              </select>
-              <select value={shiftType} onChange={e => setShiftType(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-100">
-                {SHIFT_TYPES.map(s => <option key={s.id} value={s.label}>{s.label}</option>)}
-              </select>
+          {adminSubTab === 'approvals' && (
+            <div className="space-y-6">
+              {/* Pending Approvals */}
+              <div className="bg-[#0b1120] border border-slate-800 rounded-2xl p-4 space-y-3">
+                <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Pending Account Registrations</h3>
+                {users.filter(u => !u.approved).length === 0 ? (
+                  <p className="text-xs text-slate-500">No pending registrations requiring approval.</p>
+                ) : (
+                  users.filter(u => !u.approved).map(u => (
+                    <div key={u.id} className="flex items-center justify-between p-3 bg-[#060913] border border-slate-800 rounded-xl text-xs">
+                      <div>
+                        <p className="font-bold text-white">{u.rank} {u.name} <span className="text-slate-500">(Badge #{u.badge})</span></p>
+                        <p className="text-slate-400 font-mono">{u.phone} ({u.carrier})</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => onApproveUser(u.id)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-bold">Approve</button>
+                        <button onClick={() => onRemoveUser(u.id)} className="bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white px-3 py-1.5 rounded-lg font-bold">Reject & Remove</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Active Officer Roster & Balances */}
+              <div className="bg-[#0b1120] border border-slate-800 rounded-2xl p-4 space-y-3">
+                <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Active Department Personnel & Time Off Balances</h3>
+                <div className="space-y-3">
+                  {users.filter(u => u.approved).map(u => (
+                    <OfficerRow 
+                      key={u.id} 
+                      user={u} 
+                      onUpdateBalances={onUpdateUserBalances} 
+                      onRemoveUser={onRemoveUser} 
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-7 gap-2 mb-4">
-              {Array.from({ length: 30 }, (_, i) => i + 1).map(day => (
-                <button key={day} onClick={() => setSelectedDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])} className={`p-2 rounded text-xs font-mono ${selectedDays.includes(day) ? 'bg-cyan-500 text-black font-bold' : 'bg-slate-950 border border-slate-800'}`}>
-                  Nov {day}
+          )}
+
+          {adminSubTab === 'scheduler' && (
+            <div className="space-y-6">
+              <div className="bg-[#0b1120] border border-slate-800 rounded-2xl p-5 space-y-4">
+                <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Batch Schedule Officers</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-slate-300 mb-1">Select Officer</label>
+                    <select 
+                      value={selectedUser} 
+                      onChange={e => setSelectedUser(e.target.value)}
+                      className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                    >
+                      {users.filter(u => u.approved).map(u => (
+                        <option key={u.id} value={u.id}>{u.rank} {u.name} (#{u.badge})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-300 mb-1">Select Shift Type</label>
+                    <select 
+                      value={shiftType} 
+                      onChange={e => setShiftType(e.target.value)}
+                      className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                    >
+                      <option value="Day Shift">Day Shift (0700 - 1500)</option>
+                      <option value="Mid Shift">Mid Shift (1500 - 2300)</option>
+                      <option value="Night Shift">Night Shift (2300 - 0700)</option>
+                      <option value="Admin Shift">Admin Shift (0800 - 1600)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-slate-300 mb-2">Click Days to Schedule in Selected Month</label>
+                  <div className="grid grid-cols-7 gap-1">
+                    {Array.from({ length: 31 }).map((_, i) => {
+                      const d = i + 1;
+                      const dateStr = `2026-11-${String(d).padStart(2, '0')}`;
+                      const isSelected = selectedDates.includes(dateStr);
+                      return (
+                        <button 
+                          key={dateStr} 
+                          onClick={() => toggleDateSelection(dateStr)}
+                          className={`p-2 text-xs font-mono rounded-lg border ${
+                            isSelected ? 'bg-cyan-500 text-black font-bold border-cyan-400' : 'bg-[#060913] text-slate-400 border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
+                          Nov {d}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button onClick={handleSaveShifts} className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs">
+                  Save Shift Block
                 </button>
-              ))}
+              </div>
+
+              {/* Wipe Month Clean */}
+              <div className="bg-rose-500/5 border border-rose-500/20 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-rose-400">Wipe Entire Month Schedule</p>
+                  <p className="text-[10px] text-slate-400">Permanently clears all scheduled shifts for the chosen month</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    if (confirm(`Wipe all shifts for month ${wipeMonth + 1}/${wipeYear}?`)) {
+                      onWipeMonthShifts(wipeYear, wipeMonth);
+                    }
+                  }}
+                  className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold"
+                >
+                  Wipe Month Clean
+                </button>
+              </div>
             </div>
-            <button onClick={handleSaveShifts} className="w-full py-3 bg-cyan-500 text-slate-950 font-bold rounded-xl text-xs uppercase">Save Shifts</button>
-          </div>
+          )}
+
+          {adminSubTab === 'channels' && (
+            <div className="bg-[#0b1120] border border-slate-800 rounded-2xl p-5 space-y-4">
+              <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Create Custom Comms Channel</h3>
+              <input 
+                type="text" 
+                placeholder="Channel Name (e.g., Night Shift Briefings)" 
+                value={newChatTitle}
+                onChange={e => setNewChatTitle(e.target.value)}
+                className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+              />
+              <div>
+                <label className="block text-xs text-slate-300 mb-2">Assigned Squad Members</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {users.filter(u => u.approved).map(u => (
+                    <label key={u.id} className="flex items-center gap-2 text-xs text-slate-300">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedMembers.includes(u.id)}
+                        onChange={e => {
+                          if (e.target.checked) setSelectedMembers([...selectedMembers, u.id]);
+                          else setSelectedMembers(selectedMembers.filter(m => m !== u.id));
+                        }}
+                        className="accent-cyan-500"
+                      />
+                      {u.rank} {u.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  if (!newChatTitle) return;
+                  onCreateChatChannel(newChatTitle, selectedMembers);
+                  setNewChatTitle('');
+                  setSelectedMembers([]);
+                  alert("Channel Created!");
+                }}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl text-xs font-semibold"
+              >
+                Dispatch Channel
+              </button>
+            </div>
+          )}
+
+          {adminSubTab === 'sms' && (
+            <div className="bg-[#0b1120] border border-slate-800 rounded-2xl p-5 space-y-4">
+              <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider">SMS Gateway Config (Free Non-Twilio Supported)</h3>
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Dispatch Engine</label>
+                <select 
+                  value={smsConfig.engine} 
+                  onChange={e => onUpdateSmsConfig({ ...smsConfig, engine: e.target.value })}
+                  className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                >
+                  <option value="carrier_gateway">Free Carrier Direct Email-to-SMS (No Fees)</option>
+                  <option value="webhook">Custom SMS Webhook (Zapier / Make / AWS)</option>
+                </select>
+              </div>
+
+              {smsConfig.engine === 'webhook' && (
+                <div>
+                  <label className="block text-xs text-slate-300 mb-1">Webhook Dispatch Endpoint URL</label>
+                  <input 
+                    type="url" 
+                    placeholder="https://hooks.zapier.com/hooks/catch/..."
+                    value={smsConfig.webhookUrl}
+                    onChange={e => onUpdateSmsConfig({ ...smsConfig, webhookUrl: e.target.value })}
+                    className="w-full bg-[#060913] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    function OfficerRow({ user, onUpdateBalances, onRemoveUser }) {
+      const [vacation, setVacation] = useState(user.vacationHours || 0);
+      const [personal, setPersonal] = useState(user.personalHours || 0);
+      const [comp, setComp] = useState(user.compHours || 0);
+
+      return (
+        <div className="p-3 bg-[#060913] border border-slate-800 rounded-xl text-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold text-white">{user.rank} {user.name} <span className="text-slate-500">(Badge #{user.badge})</span></p>
+              <p className="text-[10px] text-slate-500 font-mono">{user.phone} • {user.carrier.toUpperCase()}</p>
+            </div>
+            {user.role !== 'admin' && (
+              <button onClick={() => onRemoveUser(user.id)} className="text-rose-400 hover:text-rose-300 p-1">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <span className="text-[9px] text-slate-400 block">Vacation (Hrs)</span>
+              <input type="number" value={vacation} onChange={e => setVacation(Number(e.target.value))} className="w-full bg-[#0b1120] border border-slate-700 rounded px-2 py-1 text-white" />
+            </div>
+            <div>
+              <span className="text-[9px] text-slate-400 block">Personal (Hrs)</span>
+              <input type="number" value={personal} onChange={e => setPersonal(Number(e.target.value))} className="w-full bg-[#0b1120] border border-slate-700 rounded px-2 py-1 text-white" />
+            </div>
+            <div>
+              <span className="text-[9px] text-slate-400 block">Comp (Hrs)</span>
+              <input type="number" value={comp} onChange={e => setComp(Number(e.target.value))} className="w-full bg-[#0b1120] border border-slate-700 rounded px-2 py-1 text-white" />
+            </div>
+          </div>
+
+          <button onClick={() => onUpdateBalances(user.id, vacation, personal, comp)} className="bg-slate-800 hover:bg-slate-700 text-cyan-400 px-3 py-1 rounded text-[10px] font-bold">
+            Update Balances
+          </button>
+        </div>
+      );
+    }
+
+    // Render App Component
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>
