@@ -11,6 +11,8 @@
   <!-- React & React DOM -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body {
@@ -40,6 +42,11 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
     
+    // Initialize Supabase Client
+    const SUPABASE_URL = "https://kbqectdsmvexgdyrdbad.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImticWVjdGRzbXZleGdkeXJkYmFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2MzcyMjAsImV4cCI6MjEwOTIxMzIyMH0.bX_lNQc3bKikGncN2-AdpGbaoTqQORc99PLwzRraiHY";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     // Native SVG Icons
     const Shield = ({ className = "w-5 h-5" }) => (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -54,7 +61,7 @@
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     );
     const Settings = ({ className = "w-5 h-5" }) => (
-      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path strokeLinecap="round" strokeLinejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path strokeLinecap="round" strokeLinejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     );
     const Trash2 = ({ className = "w-5 h-5" }) => (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path strokeLinecap="round" strokeLinejoin="round" d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -81,73 +88,102 @@
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     );
 
-    const INITIAL_USERS = [
-      {
-        id: "usr_master",
-        name: "Seth Persinger",
-        badge: "23-22",
-        phone: "765-585-2798",
-        carrier: "verizon",
-        rank: "Chief",
-        role: "admin",
-        approved: true,
-        smsEnabled: true,
-        password: "admin123",
-        vacationHours: 120,
-        personalHours: 40,
-        compHours: 32
-      },
-      {
-        id: "usr_2",
-        name: "John Davis",
-        badge: "23-14",
-        phone: "765-555-0144",
-        carrier: "att",
-        rank: "Sergeant",
-        role: "officer",
-        approved: true,
-        smsEnabled: true,
-        password: "officerpassword",
-        vacationHours: 80,
-        personalHours: 24,
-        compHours: 16
-      }
-    ];
-
-    const INITIAL_CHATS = [
-      {
-        id: "chat_gen",
-        title: "Patrol Alpha Broadcast",
-        members: ["usr_master", "usr_2"],
-        messages: [
-          { id: "m1", senderId: "usr_master", senderName: "Chief Seth Persinger", text: "Department wide directive: Ensure all shift logs are synced before end of watch.", time: "08:00 AM" }
-        ]
-      }
-    ];
-
-    const INITIAL_ANNOUNCEMENTS = [
-      { id: "a1", author: "Chief Seth Persinger", title: "Mandatory Training Session", body: "Active shooter response refresher scheduled for Thursday at headquarters.", date: "2026-11-01" }
-    ];
-
     function App() {
-      const [users, setUsers] = useState(() => JSON.parse(localStorage.getItem('cpd_users')) || INITIAL_USERS);
+      const [users, setUsers] = useState([]);
       const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('cpd_current_user')) || null);
-      const [shifts, setShifts] = useState(() => JSON.parse(localStorage.getItem('cpd_shifts')) || []);
-      const [chats, setChats] = useState(() => JSON.parse(localStorage.getItem('cpd_chats')) || INITIAL_CHATS);
-      const [announcements, setAnnouncements] = useState(() => JSON.parse(localStorage.getItem('cpd_announcements')) || INITIAL_ANNOUNCEMENTS);
-      const [activeTab, setActiveTab] = useState('announcements');
-      
-      const [smsConfig, setSmsConfig] = useState(() => JSON.parse(localStorage.getItem('cpd_sms_config')) || {
-        engine: 'carrier_gateway',
-        webhookUrl: ''
-      });
+      const [shifts, setShifts] = useState([]);
+      const [chats, setChats] = useState([]);
+      const [announcements, setAnnouncements] = useState([]);
+      const [activeTab,нья, setActiveTab] = useState('announcements');
+      const [loadingData, setLoadingData] = useState(true);
 
-      useEffect(() => { localStorage.setItem('cpd_users', JSON.stringify(users)); }, [users]);
-      useEffect(() => { localStorage.setItem('cpd_current_user', JSON.stringify(currentUser)); }, [currentUser]);
-      useEffect(() => { localStorage.setItem('cpd_shifts', JSON.stringify(shifts)); }, [shifts]);
-      useEffect(() => { localStorage.setItem('cpd_chats', JSON.stringify(chats)); }, [chats]);
-      useEffect(() => { localStorage.setItem('cpd_announcements', JSON.stringify(announcements)); }, [announcements]);
-      useEffect(() => { localStorage.setItem('cpd_sms_config', JSON.stringify(smsConfig)); }, [smsConfig]);
+      // Fetch all data from Supabase on mount
+      const loadSupabaseData = async () => {
+        try {
+          const [profilesRes, shiftsRes, announcementsRes, channelsRes] = await Promise.all([
+            supabase.from('profiles').select('*'),
+            supabase.from('shifts').select('*'),
+            supabase.from('announcements').select('*'),
+            supabase.from('channels').select('*')
+          ]);
+
+          if (profilesRes.data) {
+            // Map snake_case database columns to camelCase frontend expectations
+            setUsers(profilesRes.data.map(u => ({
+              id: u.id,
+              name: u.name,
+              badge: u.badge,
+              phone: u.phone,
+              carrier: u.carrier,
+              rank: u.rank,
+              role: u.role,
+              approved: u.approved,
+              smsEnabled: u.sms_enabled,
+              password: u.password,
+              vacationHours: u.vacation_hours,
+              personalHours: u.personal_hours,
+              compHours: u.comp_hours
+            })));
+          }
+
+          if (shiftsRes.data) {
+            setShifts(shiftsRes.data.map(s => ({
+              id: s.id,
+              userId: s.user_id,
+              shiftType: s.shift_type,
+              date: s.date
+            })));
+          }
+
+          if (announcementsRes.data) {
+            setAnnouncements(announcementsRes.data);
+          }
+
+          if (channelsRes.data) {
+            const channelsWithMessages = await Promise.all(channelsRes.data.map(async c => {
+              const msgRes = await supabase.from('messages').select('*').eq('channel_id', c.id);
+              return {
+                id: c.id,
+                title: c.title,
+                members: c.members || [],
+                messages: (msgRes.data || []).map(m => ({
+                  id: m.id,
+                  senderId: m.sender_id,
+                  senderName: m.sender_name,
+                  text: m.text,
+                  time: m.time
+                }))
+              };
+            }));
+            setChats(channelsWithMessages);
+          }
+        } catch (err) {
+          console.error("Error loading data from Supabase:", err);
+        } finally {
+          setLoadingData(false);
+        }
+      };
+
+      useEffect(() => {
+        loadSupabaseData();
+
+        // Realtime Subscription for live updates across devices
+        const channel = supabase.channel('schema-db-changes')
+          .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+            loadSupabaseData();
+          })
+          .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+      }, []);
+
+      useEffect(() => { 
+        if (currentUser) {
+          localStorage.setItem('cpd_current_user', JSON.stringify(currentUser)); 
+        } else {
+          localStorage.removeItem('cpd_current_user');
+        }
+      }, [currentUser]);
 
       const handleLogin = (badge, password) => {
         const found = users.find(u => u.badge === badge && u.password === password);
@@ -157,33 +193,48 @@
         return { success: true };
       };
 
-      const handleRegister = (newUser) => {
+      const handleRegister = async (newUser) => {
         if (users.some(u => u.badge === newUser.badge)) {
           return { success: false, message: "Badge number already registered in database" };
         }
-        const created = {
-          ...newUser,
-          id: `usr_${Date.now()}`,
+        
+        const { error } = await supabase.from('profiles').insert([{
+          name: newUser.name,
+          badge: newUser.badge,
+          phone: newUser.phone,
+          carrier: newUser.carrier,
+          rank: newUser.rank,
+          password: newUser.password,
           role: 'officer',
           approved: false,
-          smsEnabled: true,
-          vacationHours: 0,
-          personalHours: 0,
-          compHours: 0
-        };
-        const updatedUsers = [...users, created];
-        setUsers(updatedUsers);
-        localStorage.setItem('cpd_users', JSON.stringify(updatedUsers));
+          sms_enabled: true,
+          vacation_hours: 0,
+          personal_hours: 0,
+          comp_hours: 0
+        }]);
+
+        if (error) {
+          return { success: false, message: error.message };
+        }
+
+        await loadSupabaseData();
         return { success: true, message: "Registration submitted! An Admin must approve your access." };
       };
 
       const handleLogout = () => {
         setCurrentUser(null);
-        localStorage.removeItem('cpd_current_user');
       };
 
       if (!currentUser) {
         return <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />;
+      }
+
+      if (loadingData) {
+        return (
+          <div className="min-h-screen bg-[#060913] flex items-center justify-center text-cyan-400 font-mono text-sm animate-pulse">
+            SYNCING TACTICAL DATABASE...
+          </div>
+        );
       }
 
       return (
@@ -219,7 +270,15 @@
               <AnnouncementsTab 
                 announcements={announcements} 
                 currentUser={currentUser}
-                onAddAnnouncement={(newAnn) => setAnnouncements([newAnn, ...announcements])}
+                onAddAnnouncement={async (newAnn) => {
+                  await supabase.from('announcements').insert([{
+                    author: newAnn.author,
+                    title: newAnn.title,
+                    body: newAnn.body,
+                    date: newAnn.date
+                  }]);
+                  loadSupabaseData();
+                }}
               />
             )}
 
@@ -236,20 +295,15 @@
                 chats={chats}
                 users={users}
                 currentUser={currentUser}
-                onSendMessage={(chatId, msgText) => {
-                  setChats(chats.map(c => {
-                    if (c.id === chatId) {
-                      const updatedMsg = {
-                        id: `msg_${Date.now()}`,
-                        senderId: currentUser.id,
-                        senderName: `${currentUser.rank} ${currentUser.name}`,
-                        text: msgText,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      };
-                      return { ...c, messages: [...c.messages, updatedMsg] };
-                    }
-                    return c;
-                  }));
+                onSendMessage={async (chatId, msgText) => {
+                  await supabase.from('messages').insert([{
+                    channel_id: chatId,
+                    sender_id: currentUser.id,
+                    sender_name: `${currentUser.rank} ${currentUser.name}`,
+                    text: msgText,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  }]);
+                  loadSupabaseData();
                 }}
               />
             )}
@@ -257,10 +311,16 @@
             {activeTab === 'settings' && (
               <SettingsTab 
                 currentUser={currentUser}
-                onUpdateSettings={(updatedData) => {
+                onUpdateSettings={async (updatedData) => {
+                  await supabase.from('profiles').update({
+                    sms_enabled: updatedData.smsEnabled,
+                    phone: updatedData.phone,
+                    carrier: updatedData.carrier
+                  }).eq('id', currentUser.id);
+
                   const updatedUser = { ...currentUser, ...updatedData };
                   setCurrentUser(updatedUser);
-                  setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
+                  loadSupabaseData();
                 }}
               />
             )}
@@ -270,40 +330,47 @@
                 users={users}
                 shifts={shifts}
                 chats={chats}
-                smsConfig={smsConfig}
-                onUpdateSmsConfig={setSmsConfig}
-                onApproveUser={(userId) => {
-                  const updated = users.map(u => u.id === userId ? { ...u, approved: true } : u);
-                  setUsers(updated);
-                  localStorage.setItem('cpd_users', JSON.stringify(updated));
+                onApproveUser={async (userId) => {
+                  await supabase.from('profiles').update({ approved: true }).eq('id', userId);
+                  loadSupabaseData();
                 }}
-                onRemoveUser={(userId) => {
+                onRemoveUser={async (userId) => {
                   if (confirm("Are you sure you want to permanently delete this officer profile?")) {
-                    const updated = users.filter(u => u.id !== userId);
-                    setUsers(updated);
-                    localStorage.setItem('cpd_users', JSON.stringify(updated));
+                    await supabase.from('profiles').delete().eq('id', userId);
+                    loadSupabaseData();
                   }
                 }}
-                onUpdateUserBalances={(userId, vacation, personal, comp) => {
-                  const updated = users.map(u => u.id === userId ? { ...u, vacationHours: vacation, personalHours: personal, compHours: comp } : u);
-                  setUsers(updated);
-                  localStorage.setItem('cpd_users', JSON.stringify(updated));
+                onUpdateUserBalances={async (userId, vacation, personal, comp) => {
+                  await supabase.from('profiles').update({
+                    vacation_hours: vacation,
+                    personal_hours: personal,
+                    comp_hours: comp
+                  }).eq('id', userId);
+                  loadSupabaseData();
+                  alert("Balances Updated Successfully!");
                 }}
-                onAddShifts={(newShiftsList) => setShifts([...shifts, ...newShiftsList])}
-                onWipeMonthShifts={(year, month) => {
-                  setShifts(shifts.filter(s => {
-                    const d = new Date(s.date);
-                    return !(d.getFullYear() === year && d.getMonth() === month);
+                onAddShifts={async (newShiftsList) => {
+                  const formatted = newShiftsList.map(s => ({
+                    user_id: s.userId,
+                    shift_type: s.shiftType,
+                    date: s.date
                   }));
+                  await supabase.from('shifts').insert(formatted);
+                  loadSupabaseData();
                 }}
-                onCreateChatChannel={(title, memberIds) => {
-                  const newChannel = {
-                    id: `chat_${Date.now()}`,
+                onWipeMonthShifts={async (year, month) => {
+                  // Delete shifts within that month range
+                  const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+                  const endDate = `${year}-${String(month + 1).padStart(2, '0')}-31`;
+                  await supabase.from('shifts').delete().gte('date', startDate).lte('date', endDate);
+                  loadSupabaseData();
+                }}
+                onCreateChatChannel={async (title, memberIds) => {
+                  await supabase.from('channels').insert([{
                     title,
-                    members: [...memberIds, currentUser.id],
-                    messages: []
-                  };
-                  setChats([...chats, newChannel]);
+                    members: [...memberIds, currentUser.id]
+                  }]);
+                  loadSupabaseData();
                 }}
               />
             )}
@@ -362,11 +429,11 @@
         if (!res.success) setError(res.message);
       };
 
-      const handleSubmitRegister = (e) => {
+      const handleSubmitRegister = async (e) => {
         e.preventDefault();
         setError('');
         setSuccessMsg('');
-        const res = onRegister({
+        const res = await onRegister({
           name: regName,
           badge: regBadge,
           phone: regPhone,
@@ -562,7 +629,6 @@
       const handleSubmit = (e) => {
         e.preventDefault();
         onAddAnnouncement({
-          id: `ann_${Date.now()}`,
           author: `${currentUser.rank} ${currentUser.name}`,
           title,
           body,
@@ -870,7 +936,7 @@
       );
     }
 
-    function AdminTab({ users, shifts, chats, smsConfig, onUpdateSmsConfig, onApproveUser, onRemoveUser, onUpdateUserBalances, onAddShifts, onWipeMonthShifts, onCreateChatChannel }) {
+    function AdminTab({ users, shifts, chats, onApproveUser, onRemoveUser, onUpdateUserBalances, onAddShifts, onWipeMonthShifts, onCreateChatChannel }) {
       const [adminSubTab, setAdminSubTab] = useState('approvals');
       const [selectedUser, setSelectedUser] = useState(users[0]?.id || '');
       const [shiftType, setShiftType] = useState('Day Shift');
@@ -892,7 +958,6 @@
       const handleSaveShifts = () => {
         if (!selectedUser || selectedDates.length === 0) return alert("Select an officer and at least one date.");
         const newShifts = selectedDates.map(d => ({
-          id: `sh_${Date.now()}_${Math.random()}`,
           userId: selectedUser,
           shiftType,
           date: d
